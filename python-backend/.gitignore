@@ -131,6 +131,10 @@ __pypackages__/
 celerybeat-schedule
 celerybeat.pid
 
+# Others
+AGENTS.md
+CLAUDE.md
+
 # Redis
 *.rdb
 *.aof

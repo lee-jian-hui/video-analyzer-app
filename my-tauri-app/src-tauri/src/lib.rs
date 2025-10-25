@@ -1,4 +1,6 @@
 use serde_json::Value;
+use std::process::{Command, Stdio};
+use std::net::TcpStream;
 
 pub mod video_processor {
     tonic::include_proto!("videoprocessor");
@@ -9,9 +11,22 @@ use video_processor::{
     VideoUploadRequest, QueryRequest, StatusRequest
 };
 
+
 // Constants
 // TODO: move into env later
 const GRPC_SERVER_URL: &str = "http://127.0.0.1:50051";
+
+fn ensure_python_backend() {
+    if TcpStream::connect("127.0.0.1:50051").is_err() {
+        println!("🦀 Starting Python backend...");
+        Command::new("python")
+            .arg("python-backend/server.py")
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .spawn()
+            .expect("Failed to start Python backend");
+    }
+}
 
 // Master gRPC function that handles all service calls
 async fn call_grpc_service<Req, Resp, F>(
@@ -82,6 +97,8 @@ async fn get_processing_status(video_id: String) -> Result<Value, String> {
 
 // #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    ensure_python_backend();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![greet, upload_video, process_query, get_processing_status])

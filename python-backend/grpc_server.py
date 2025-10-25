@@ -150,7 +150,8 @@ Graphs and Charts found:
 
 Note: This is simulated extraction. Real implementation would use OCR and data extraction AI."""
 
-def serve():
+
+def start_grpc_server():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     api_pb2_grpc.add_VideoProcessorServiceServicer_to_server(VideoProcessorService(), server)
 
@@ -164,4 +165,4 @@ def serve():
     server.wait_for_termination()
 
 if __name__ == '__main__':
-    serve()
+    start_grpc_server()
