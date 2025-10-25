@@ -1,5 +1,11 @@
 use serde_json::Value;
 
+pub mod my_api_client {
+    tonic::include_proto!("myapp");
+}
+
+use my_api_client::{my_api_service_client::MyApiServiceClient, DataRequest};
+
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -8,40 +14,24 @@ fn greet(name: &str) -> String {
 
 #[tauri::command]
 async fn py_api(method: String, payload: Option<Value>) -> Result<Value, String> {
-    let client = reqwest::Client::new();
-
-    // Default Python backend URL - you can modify this as needed
-    let base_url = "http://127.0.0.1:8000";
-    let url = format!("{}/{}", base_url, method);
-
-    let response = match payload {
-        Some(data) => {
-            client
-                .post(&url)
-                .json(&data)
-                .send()
-                .await
-                .map_err(|e| format!("Request failed: {}", e))?
-        }
-        None => {
-            client
-                .get(&url)
-                .send()
-                .await
-                .map_err(|e| format!("Request failed: {}", e))?
-        }
-    };
-
-    if !response.status().is_success() {
-        return Err(format!("HTTP error: {}", response.status()));
-    }
-
-    let result: Value = response
-        .json()
+    let mut client = MyApiServiceClient::connect("http://127.0.0.1:50051")
         .await
-        .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+        .map_err(|e| e.to_string())?;
 
-    Ok(result)
+    // Convert JSON payload → protobuf request
+    let query = payload
+        .and_then(|v| v.get("query").and_then(|q| q.as_str()).map(|s| s.to_string()))
+        .unwrap_or_default();
+
+    let request = tonic::Request::new(DataRequest { query });
+
+    let response = client
+        .get_data(request)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // Convert protobuf → JSON
+    Ok(serde_json::json!({ "result": response.into_inner().result }))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
