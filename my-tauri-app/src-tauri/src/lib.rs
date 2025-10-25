@@ -12,16 +12,26 @@ use video_processor::{
 // Constants
 const GRPC_SERVER_URL: &str = "http://127.0.0.1:50051";
 
-// Master gRPC client function
-async fn get_grpc_client() -> Result<VideoProcessorServiceClient<tonic::transport::Channel>, String> {
-    VideoProcessorServiceClient::connect(GRPC_SERVER_URL)
+// Master gRPC function that handles all service calls
+async fn call_grpc_service<Req, Resp, F>(
+    request: Req,
+    service_fn: F,
+) -> Result<Value, String>
+where
+    Req: Send + 'static,
+    Resp: serde::Serialize,
+    F: FnOnce(VideoProcessorServiceClient<tonic::transport::Channel>, Req) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<tonic::Response<Resp>, tonic::Status>> + Send>>,
+{
+    let client = VideoProcessorServiceClient::connect(GRPC_SERVER_URL)
         .await
-        .map_err(|e| format!("Failed to connect to gRPC server at {}: {}", GRPC_SERVER_URL, e))
-}
+        .map_err(|e| format!("Failed to connect to gRPC server at {}: {}", GRPC_SERVER_URL, e))?;
 
-// Generic error handler
-fn handle_grpc_error(error: tonic::Status) -> String {
-    format!("gRPC call failed: {}", error)
+    let response = service_fn(client, request)
+        .await
+        .map_err(|e| format!("gRPC call failed: {}", e))?;
+
+    serde_json::to_value(response.into_inner())
+        .map_err(|e| format!("Failed to serialize response: {}", e))
 }
 
 //  commands: https://tauri.app/develop/calling-rust/
@@ -32,66 +42,35 @@ fn greet(name: &str) -> String {
 
 #[tauri::command]
 async fn upload_video(filename: String, video_data: Vec<u8>) -> Result<Value, String> {
-    let mut client = get_grpc_client().await?;
+    let request = VideoUploadRequest { filename, video_data };
 
-    let request = tonic::Request::new(VideoUploadRequest {
-        filename,
-        video_data,
-    });
-
-    let response = client
-        .upload_video(request)
-        .await
-        .map_err(handle_grpc_error)?;
-
-    let resp = response.into_inner();
-    Ok(serde_json::json!({
-        "video_id": resp.video_id,
-        "success": resp.success,
-        "message": resp.message
-    }))
+    call_grpc_service(request, |mut client, req| {
+        Box::pin(async move {
+            client.upload_video(tonic::Request::new(req)).await
+        })
+    }).await
 }
 
 #[tauri::command]
 async fn process_query(video_id: String, query: String, query_type: String) -> Result<Value, String> {
-    let mut client = get_grpc_client().await?;
+    let request = QueryRequest { video_id, query, query_type };
 
-    let request = tonic::Request::new(QueryRequest {
-        video_id,
-        query,
-        query_type,
-    });
-
-    let response = client
-        .process_query(request)
-        .await
-        .map_err(handle_grpc_error)?;
-
-    let resp = response.into_inner();
-    Ok(serde_json::json!({
-        "result": resp.result,
-        "success": resp.success,
-        "error_message": resp.error_message
-    }))
+    call_grpc_service(request, |mut client, req| {
+        Box::pin(async move {
+            client.process_query(tonic::Request::new(req)).await
+        })
+    }).await
 }
 
 #[tauri::command]
 async fn get_processing_status(video_id: String) -> Result<Value, String> {
-    let mut client = get_grpc_client().await?;
+    let request = StatusRequest { video_id };
 
-    let request = tonic::Request::new(StatusRequest { video_id });
-
-    let response = client
-        .get_processing_status(request)
-        .await
-        .map_err(handle_grpc_error)?;
-
-    let resp = response.into_inner();
-    Ok(serde_json::json!({
-        "status": resp.status,
-        "progress_percentage": resp.progress_percentage,
-        "message": resp.message
-    }))
+    call_grpc_service(request, |mut client, req| {
+        Box::pin(async move {
+            client.get_processing_status(tonic::Request::new(req)).await
+        })
+    }).await
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
