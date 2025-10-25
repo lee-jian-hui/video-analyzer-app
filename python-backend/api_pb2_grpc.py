@@ -5,7 +5,7 @@ import grpc
 import api_pb2 as api__pb2
 
 
-class MyApiServiceStub(object):
+class VideoProcessorServiceStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -14,42 +14,74 @@ class MyApiServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.GetData = channel.unary_unary(
-                '/myapp.MyApiService/GetData',
-                request_serializer=api__pb2.DataRequest.SerializeToString,
-                response_deserializer=api__pb2.DataResponse.FromString,
+        self.UploadVideo = channel.unary_unary(
+                '/videoprocessor.VideoProcessorService/UploadVideo',
+                request_serializer=api__pb2.VideoUploadRequest.SerializeToString,
+                response_deserializer=api__pb2.VideoUploadResponse.FromString,
+                )
+        self.ProcessQuery = channel.unary_unary(
+                '/videoprocessor.VideoProcessorService/ProcessQuery',
+                request_serializer=api__pb2.QueryRequest.SerializeToString,
+                response_deserializer=api__pb2.QueryResponse.FromString,
+                )
+        self.GetProcessingStatus = channel.unary_unary(
+                '/videoprocessor.VideoProcessorService/GetProcessingStatus',
+                request_serializer=api__pb2.StatusRequest.SerializeToString,
+                response_deserializer=api__pb2.StatusResponse.FromString,
                 )
 
 
-class MyApiServiceServicer(object):
+class VideoProcessorServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def GetData(self, request, context):
+    def UploadVideo(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ProcessQuery(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetProcessingStatus(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_MyApiServiceServicer_to_server(servicer, server):
+def add_VideoProcessorServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'GetData': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetData,
-                    request_deserializer=api__pb2.DataRequest.FromString,
-                    response_serializer=api__pb2.DataResponse.SerializeToString,
+            'UploadVideo': grpc.unary_unary_rpc_method_handler(
+                    servicer.UploadVideo,
+                    request_deserializer=api__pb2.VideoUploadRequest.FromString,
+                    response_serializer=api__pb2.VideoUploadResponse.SerializeToString,
+            ),
+            'ProcessQuery': grpc.unary_unary_rpc_method_handler(
+                    servicer.ProcessQuery,
+                    request_deserializer=api__pb2.QueryRequest.FromString,
+                    response_serializer=api__pb2.QueryResponse.SerializeToString,
+            ),
+            'GetProcessingStatus': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetProcessingStatus,
+                    request_deserializer=api__pb2.StatusRequest.FromString,
+                    response_serializer=api__pb2.StatusResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'myapp.MyApiService', rpc_method_handlers)
+            'videoprocessor.VideoProcessorService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
  # This class is part of an EXPERIMENTAL API.
-class MyApiService(object):
+class VideoProcessorService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def GetData(request,
+    def UploadVideo(request,
             target,
             options=(),
             channel_credentials=None,
@@ -59,8 +91,42 @@ class MyApiService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/myapp.MyApiService/GetData',
-            api__pb2.DataRequest.SerializeToString,
-            api__pb2.DataResponse.FromString,
+        return grpc.experimental.unary_unary(request, target, '/videoprocessor.VideoProcessorService/UploadVideo',
+            api__pb2.VideoUploadRequest.SerializeToString,
+            api__pb2.VideoUploadResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ProcessQuery(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/videoprocessor.VideoProcessorService/ProcessQuery',
+            api__pb2.QueryRequest.SerializeToString,
+            api__pb2.QueryResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetProcessingStatus(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/videoprocessor.VideoProcessorService/GetProcessingStatus',
+            api__pb2.StatusRequest.SerializeToString,
+            api__pb2.StatusResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

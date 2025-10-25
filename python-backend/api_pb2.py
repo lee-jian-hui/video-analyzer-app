@@ -14,17 +14,25 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\tapi.proto\x12\x05myapp\"\x1c\n\x0b\x44\x61taRequest\x12\r\n\x05query\x18\x01 \x01(\t\"\x1e\n\x0c\x44\x61taResponse\x12\x0e\n\x06result\x18\x01 \x01(\t2B\n\x0cMyApiService\x12\x32\n\x07GetData\x12\x12.myapp.DataRequest\x1a\x13.myapp.DataResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\tapi.proto\x12\x0evideoprocessor\":\n\x12VideoUploadRequest\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x12\n\nvideo_data\x18\x02 \x01(\x0c\"I\n\x13VideoUploadResponse\x12\x10\n\x08video_id\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x0f\n\x07message\x18\x03 \x01(\t\"C\n\x0cQueryRequest\x12\x10\n\x08video_id\x18\x01 \x01(\t\x12\r\n\x05query\x18\x02 \x01(\t\x12\x12\n\nquery_type\x18\x03 \x01(\t\"G\n\rQueryResponse\x12\x0e\n\x06result\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x15\n\rerror_message\x18\x03 \x01(\t\"!\n\rStatusRequest\x12\x10\n\x08video_id\x18\x01 \x01(\t\"N\n\x0eStatusResponse\x12\x0e\n\x06status\x18\x01 \x01(\t\x12\x1b\n\x13progress_percentage\x18\x02 \x01(\x05\x12\x0f\n\x07message\x18\x03 \x01(\t2\x92\x02\n\x15VideoProcessorService\x12V\n\x0bUploadVideo\x12\".videoprocessor.VideoUploadRequest\x1a#.videoprocessor.VideoUploadResponse\x12K\n\x0cProcessQuery\x12\x1c.videoprocessor.QueryRequest\x1a\x1d.videoprocessor.QueryResponse\x12T\n\x13GetProcessingStatus\x12\x1d.videoprocessor.StatusRequest\x1a\x1e.videoprocessor.StatusResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'api_pb2', _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
-  _globals['_DATAREQUEST']._serialized_start=20
-  _globals['_DATAREQUEST']._serialized_end=48
-  _globals['_DATARESPONSE']._serialized_start=50
-  _globals['_DATARESPONSE']._serialized_end=80
-  _globals['_MYAPISERVICE']._serialized_start=82
-  _globals['_MYAPISERVICE']._serialized_end=148
+  _globals['_VIDEOUPLOADREQUEST']._serialized_start=29
+  _globals['_VIDEOUPLOADREQUEST']._serialized_end=87
+  _globals['_VIDEOUPLOADRESPONSE']._serialized_start=89
+  _globals['_VIDEOUPLOADRESPONSE']._serialized_end=162
+  _globals['_QUERYREQUEST']._serialized_start=164
+  _globals['_QUERYREQUEST']._serialized_end=231
+  _globals['_QUERYRESPONSE']._serialized_start=233
+  _globals['_QUERYRESPONSE']._serialized_end=304
+  _globals['_STATUSREQUEST']._serialized_start=306
+  _globals['_STATUSREQUEST']._serialized_end=339
+  _globals['_STATUSRESPONSE']._serialized_start=341
+  _globals['_STATUSRESPONSE']._serialized_end=419
+  _globals['_VIDEOPROCESSORSERVICE']._serialized_start=422
+  _globals['_VIDEOPROCESSORSERVICE']._serialized_end=696
 # @@protoc_insertion_point(module_scope)

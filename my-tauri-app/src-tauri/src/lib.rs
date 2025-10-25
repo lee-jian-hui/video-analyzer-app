@@ -1,10 +1,13 @@
 use serde_json::Value;
 
-pub mod my_api_client {
-    tonic::include_proto!("myapp");
+pub mod video_processor {
+    tonic::include_proto!("videoprocessor");
 }
 
-use my_api_client::{my_api_service_client::MyApiServiceClient, DataRequest};
+use video_processor::{
+    video_processor_service_client::VideoProcessorServiceClient,
+    VideoUploadRequest, QueryRequest, StatusRequest
+};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
