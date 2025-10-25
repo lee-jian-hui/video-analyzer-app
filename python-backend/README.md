@@ -1,6 +1,10 @@
 
-
-
+## Testing the grpc endpoints
+```
+  grpcurl -plaintext -proto api.proto localhost:50051 list
+  grpcurl -plaintext -proto api.proto localhost:50051 describe myapp.MyApiService
+  grpcurl -plaintext -proto api.proto -d '{"query": "hello"}' localhost:50051 myapp.MyApiService/GetData
+```
 
 ## GENERATE python proto types
 ```
