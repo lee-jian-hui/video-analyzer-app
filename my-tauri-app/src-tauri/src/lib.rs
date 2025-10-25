@@ -10,6 +10,7 @@ use video_processor::{
 };
 
 // Constants
+// TODO: move into env later
 const GRPC_SERVER_URL: &str = "http://127.0.0.1:50051";
 
 // Master gRPC function that handles all service calls
@@ -35,13 +36,17 @@ where
 }
 
 //  commands: https://tauri.app/develop/calling-rust/
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+    println!("🦀 greet called with {}", name);
+    return format!("Hello, {}! You've been greeted from Rust!", name);
+
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 async fn upload_video(filename: String, video_data: Vec<u8>) -> Result<Value, String> {
+    println!("🦀 Rust: upload_video called with {}", filename);
+    println!("🦀 Rust: video_data size: {}", video_data.len());
     let request = VideoUploadRequest { filename, video_data };
 
     call_grpc_service(request, |mut client, req| {
@@ -51,7 +56,8 @@ async fn upload_video(filename: String, video_data: Vec<u8>) -> Result<Value, St
     }).await
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
+
 async fn process_query(video_id: String, query: String, query_type: String) -> Result<Value, String> {
     let request = QueryRequest { video_id, query, query_type };
 
@@ -62,7 +68,8 @@ async fn process_query(video_id: String, query: String, query_type: String) -> R
     }).await
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
+
 async fn get_processing_status(video_id: String) -> Result<Value, String> {
     let request = StatusRequest { video_id };
 
@@ -73,7 +80,7 @@ async fn get_processing_status(video_id: String) -> Result<Value, String> {
     }).await
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
+// #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())

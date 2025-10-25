@@ -10,8 +10,21 @@ clean and recompile code
 cargo clean && cargo check
 ```
 
+run in debug mode
+```
+Maximum logging options:
+# Most verbose Rust logging
+RUST_LOG=trace npm run tauri dev
 
+# Include all Tauri internal logs
+RUST_LOG=tauri=trace npm run tauri dev
 
+# Everything + Tauri dev server verbose
+RUST_LOG=trace npm run tauri dev -- --verbose
+
+# Nuclear option - all possible logs
+RUST_LOG=trace,tauri=trace,tonic=trace npm run tauri dev -- --verbose
+```
 
 
 
@@ -28,3 +41,7 @@ startup in dev
 ```
 npm run tauri dev
 ```
+
+
+## Notable articles / references
+- https://stackoverflow.com/questions/78432685/why-does-tauri-modify-the-parameter-names-of-invoked-functionsQ

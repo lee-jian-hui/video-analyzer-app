@@ -9,6 +9,8 @@ o “What objects are shown in the video?”
 o “Are there any graphs in the video? If yes, describe them.” 
 o “Summarize our discussion so far and generate a PDF.” 
 
+## Pre-requisites
+- mp4 files for testing, e.g. https://file-examples.com/index.php/sample-video-files/sample-mp4-files/
 
 
 ## Startup commands

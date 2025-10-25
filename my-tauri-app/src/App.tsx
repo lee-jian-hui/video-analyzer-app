@@ -3,12 +3,18 @@ import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 
 function App() {
+  const [greetMsg, setGreetMsg] = useState("");
+  const [name, setName] = useState("");
   const [uploadedVideoId, setUploadedVideoId] = useState("");
   const [queryResponse, setQueryResponse] = useState("");
   const [customQuery, setCustomQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function greet() {
+    setGreetMsg(await invoke("greet", { name }));
+  }
 
   async function uploadVideo() {
     const file = fileInputRef.current?.files?.[0];
@@ -29,6 +35,8 @@ function App() {
       const arrayBuffer = await file.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       const videoData = Array.from(uint8Array);
+
+      console.log("Calling upload_video with:", { filename: file.name, video_data: videoData });
 
       const response = await invoke("upload_video", {
         filename: file.name,
@@ -85,6 +93,36 @@ function App() {
     <main className="container">
       <h1>🎥 Video AI Processor</h1>
       <p>Upload MP4 videos and interact with them using natural language</p>
+
+      {/* Greet Section */}
+      <div className="greet-section" style={{ marginBottom: "2rem", padding: "1rem", backgroundColor: "#e8f4fd", borderRadius: "8px", border: "1px solid #b3d9ff" }}>
+        <h2>👋 Test Rust Connection</h2>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "1rem" }}>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Enter your name..."
+            style={{ padding: "0.5rem", border: "1px solid #ccc", borderRadius: "4px", flex: 1 }}
+          />
+          <button
+            onClick={greet}
+            style={{ padding: "0.5rem 1rem", backgroundColor: "#007bff", color: "white", border: "none", borderRadius: "4px" }}
+          >
+            Greet
+          </button>
+        </div>
+        <div style={{
+          backgroundColor: "#fff",
+          padding: "0.75rem",
+          borderRadius: "4px",
+          border: "1px solid #ddd",
+          minHeight: "40px",
+          fontFamily: "monospace"
+        }}>
+          {greetMsg || "Enter your name and click Greet to test Rust backend"}
+        </div>
+      </div>
 
       {/* Video Upload Section */}
       <div className="upload-section" style={{ marginBottom: "2rem", padding: "1.5rem", border: "2px dashed #ccc", borderRadius: "8px" }}>
