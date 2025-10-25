@@ -1,0 +1,4 @@
+# catch all gitignore that catches other files
+
+*.mp4
+.vscode
