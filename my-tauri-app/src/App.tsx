@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import "./App.css";
 import { ChatComponent } from "./components/ChatComponent";
 import { ActionHistoryPanel, ActionEntry } from "./components/ActionHistoryPanel";
+import { appLayoutConfig, isFullscreenViewport } from "./configs";
 
 const HISTORY_STORAGE_KEY = "videoAnalyzerActionHistory";
 const LAST_VIDEO_STORAGE_KEY = "videoAnalyzerLastVideo";
@@ -10,6 +11,9 @@ const MAX_ACTIONS = 40;
 function App() {
   const [currentVideo, setCurrentVideo] = useState<{ id: string; name: string } | null>(null);
   const [actionHistory, setActionHistory] = useState<ActionEntry[]>([]);
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth : appLayoutConfig.defaultWidth
+  );
 
   useEffect(() => {
     const storedHistory = localStorage.getItem(HISTORY_STORAGE_KEY);
@@ -41,6 +45,13 @@ function App() {
       localStorage.removeItem(LAST_VIDEO_STORAGE_KEY);
     }
   }, [currentVideo]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(actionHistory));
@@ -82,12 +93,28 @@ function App() {
     localStorage.removeItem(HISTORY_STORAGE_KEY);
   }
 
+  const fullscreen = isFullscreenViewport(viewportWidth);
+  const containerStyle: CSSProperties = {
+    maxWidth: fullscreen ? "min(1250px, 95vw)" : `${appLayoutConfig.defaultWidth}px`,
+    width: "100%",
+    margin: "0 auto",
+    paddingTop: `${appLayoutConfig.containerPaddingTopVH}vh`,
+    minHeight: `${appLayoutConfig.defaultHeight}px`,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "1rem",
+    boxSizing: "border-box",
+    paddingLeft: "1.25rem",
+    paddingRight: "1.25rem"
+  };
+
   return (
-    <main className="container" style={{ maxWidth: "1000px", margin: "0 auto" }}>
+    <main className="container" style={containerStyle}>
       <h1>🎥 Video AI Processor</h1>
       <p>Upload MP4 files, then chat with them. All actions are logged so you always know the active video.</p>
 
-      <div style={{ display: "grid", gap: "1.5rem" }}>
+      <div style={{ display: "grid", gap: "1.5rem" , width: "100%"}}>
         <ChatComponent
           videoId={currentVideo?.id ?? ""}
           activeVideoName={currentVideo?.name}

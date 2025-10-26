@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ChatPromptComposer } from "./chat/ChatPromptComposer";
 import { ChatTranscript } from "./chat/ChatTranscript";
 import { ChatResultsPanel } from "./chat/ChatResultsPanel";
 import { ChatHistoryPanel } from "./chat/ChatHistoryPanel";
 import type { ChatResponseItem, ChatMessage, ConversationEntry } from "./chat/types";
+import { historyConfig } from "../configs";
 
 interface ChatComponentProps {
   videoId: string;
@@ -23,6 +24,16 @@ const RESPONSE_LABELS: Record<number, string> = {
 const DEFAULT_RESULT_COPY =
   "Run a query to see the assistant response. Streaming chunks will be rendered here.";
 const MAX_INLINE_CHARS = 400;
+
+const interactionPanelStyle: CSSProperties = {
+  background: "#f8f9fa",
+  padding: "1.5rem",
+  borderRadius: "16px",
+  border: "1px solid #e3e6ea",
+  boxShadow: "0 6px 14px rgba(15, 23, 42, 0.06)",
+  width: "100%",
+  boxSizing: "border-box"
+};
 
 export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onChatAction }: ChatComponentProps) {
   const [customQuery, setCustomQuery] = useState("");
@@ -176,7 +187,7 @@ function renderConversationContent(text: string) {
   );
 }
 
-  async function refreshHistory(limit = 10) {
+  async function refreshHistory(limit = historyConfig.limit) {
     setHistoryStatus("loading");
     setHistoryError("");
     try {
@@ -249,7 +260,7 @@ function renderConversationContent(text: string) {
   }
 
   return (
-    <div className="chat-layout" style={{ display: "grid", gap: "1.5rem" }}>
+    <div className="chat-layout" style={{ display: "grid", gap: "1.5rem", width: "100%", boxSizing: "border-box" }}>
       <input
         type="file"
         accept=".mp4,video/mp4"
@@ -258,16 +269,7 @@ function renderConversationContent(text: string) {
         onChange={handleFileSelected}
       />
 
-      <section
-        className="interaction-panel"
-        style={{
-          background: "#f8f9fa",
-          padding: "1.5rem",
-          borderRadius: "16px",
-          border: "1px solid #e3e6ea",
-          boxShadow: "0 6px 14px rgba(15, 23, 42, 0.06)"
-        }}
-      >
+      <section className="interaction-panel" style={interactionPanelStyle}>
         <h2>🤖 Assistant Workspace</h2>
         <p style={{ color: "#555" }}>
           Upload a video using the icon, then send prompts. The result panel shows structured responses and streaming status.

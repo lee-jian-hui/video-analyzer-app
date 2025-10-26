@@ -13,7 +13,9 @@ export function ChatTranscript({ conversation, renderContent }: ChatTranscriptPr
         background: "#fff",
         borderRadius: "16px",
         border: "1px solid #e9ecef",
-        padding: "1rem"
+        padding: "1rem",
+        width: "100%",
+        boxSizing: "border-box"
       }}
     >
       <h3 style={{ marginBottom: "0.75rem" }}>Chat transcript</h3>
@@ -33,16 +35,16 @@ export function ChatTranscript({ conversation, renderContent }: ChatTranscriptPr
             >
               <div
                 style={{
-                  width: "70%",
-                  maxWidth: "70%",
-                  minWidth: "260px",
+                  width: "min(70%, 560px)",
+                  maxWidth: "100%",
                   padding: "0.85rem 1rem",
                   borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
                   background: isUser ? "#dbe7ff" : "#f2f4f7",
                   color: "#1f1f1f",
                   textAlign: "left",
                   boxShadow: "0 2px 6px rgba(15, 23, 42, 0.08)",
-                  wordBreak: "break-word"
+                  wordBreak: "break-word",
+                  boxSizing: "border-box"
                 }}
               >
                 <div

@@ -15,7 +15,9 @@ export function ChatResultsPanel({ resultSummary, chatStream, formatChunk }: Cha
         borderRadius: "16px",
         border: "1px solid #e9ecef",
         padding: "1.5rem",
-        boxShadow: "0 6px 18px rgba(15, 23, 42, 0.05)"
+        boxShadow: "0 6px 18px rgba(15, 23, 42, 0.05)",
+        width: "100%",
+        boxSizing: "border-box"
       }}
     >
       <h2>📄 Assistant Response</h2>

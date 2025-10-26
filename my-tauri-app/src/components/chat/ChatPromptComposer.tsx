@@ -33,7 +33,9 @@ export function ChatPromptComposer({
         border: "1px solid #e9ecef",
         display: "flex",
         flexDirection: "column",
-        gap: "0.75rem"
+        gap: "0.75rem",
+        width: "100%",
+        boxSizing: "border-box"
       }}
     >
       <label style={{ fontWeight: 600 }}>Prompt</label>

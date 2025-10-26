@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 export interface ActionEntry {
   id: string;
   type: "upload" | "chat";
@@ -12,6 +14,52 @@ interface ActionHistoryPanelProps {
   actions: ActionEntry[];
   onClearHistory: () => void;
 }
+
+const sectionStyle: CSSProperties = {
+  background: "#fff",
+  borderRadius: "10px",
+  border: "1px solid #e9ecef",
+  padding: "1.5rem",
+  width: "100%",
+  boxSizing: "border-box",
+  boxShadow: "0 6px 14px rgba(15, 23, 42, 0.04)"
+};
+
+const detailsWrapperStyle: CSSProperties = {
+  marginTop: "0.35rem"
+};
+
+const detailsStyle: CSSProperties = {
+  marginTop: "0.35rem",
+  background: "#f8f9fa",
+  padding: "0.5rem",
+  borderRadius: "6px",
+  border: "1px solid #dee2e6"
+};
+
+const detailsSummaryStyle: CSSProperties = {
+  cursor: "pointer",
+  color: "#0d6efd",
+  fontWeight: 600
+};
+
+const fullSubtitleStyle: CSSProperties = {
+  marginTop: "0.35rem",
+  background: "#212529",
+  color: "#f8f9fa",
+  padding: "0.5rem",
+  borderRadius: "6px",
+  maxHeight: "200px",
+  overflow: "auto",
+  whiteSpace: "pre-wrap"
+};
+
+const actionCardBaseStyle: CSSProperties = {
+  border: "1px solid #dee2e6",
+  borderRadius: "8px",
+  padding: "0.75rem",
+  boxSizing: "border-box"
+};
 
 export function ActionHistoryPanel({
   actions,
@@ -30,42 +78,18 @@ export function ActionHistoryPanel({
 
     const preview = text.slice(0, MAX_SUBTITLE);
     return (
-      <div style={{ marginTop: "0.35rem" }}>
+      <div style={detailsWrapperStyle}>
         <p style={{ wordBreak: "break-word", whiteSpace: "pre-wrap" }}>{preview}…</p>
-        <details
-          style={{
-            marginTop: "0.35rem",
-            background: "#f8f9fa",
-            padding: "0.5rem",
-            borderRadius: "6px",
-            border: "1px solid #dee2e6"
-          }}
-        >
-          <summary style={{ cursor: "pointer", color: "#0d6efd", fontWeight: 600 }}>View full details</summary>
-          <pre
-            style={{
-              marginTop: "0.35rem",
-              background: "#212529",
-              color: "#f8f9fa",
-              padding: "0.5rem",
-              borderRadius: "6px",
-              maxHeight: "200px",
-              overflow: "auto",
-              whiteSpace: "pre-wrap"
-            }}
-          >
-            {text}
-          </pre>
+        <details style={detailsStyle}>
+          <summary style={detailsSummaryStyle}>View full details</summary>
+          <pre style={fullSubtitleStyle}>{text}</pre>
         </details>
       </div>
     );
   }
 
   return (
-    <section
-      className="action-history-panel"
-      style={{ background: "#fff", borderRadius: "10px", border: "1px solid #e9ecef", padding: "1.5rem" }}
-    >
+    <section className="action-history-panel" style={sectionStyle}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2>📚 Action Trail</h2>
         <button
@@ -87,9 +111,7 @@ export function ActionHistoryPanel({
           <div
             key={action.id}
             style={{
-              border: "1px solid #dee2e6",
-              borderRadius: "8px",
-              padding: "0.75rem",
+              ...actionCardBaseStyle,
               background: action.type === "upload" ? "#e8f7ff" : "#f8f9fa"
             }}
           >
