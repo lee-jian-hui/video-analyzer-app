@@ -5,6 +5,7 @@ export interface ActionEntry {
   title: string;
   subtitle?: string;
   videoId?: string;
+  videoName?: string;
 }
 
 interface ActionHistoryPanelProps {
@@ -18,6 +19,46 @@ export function ActionHistoryPanel({
 }: ActionHistoryPanelProps) {
   function formatTimestamp(ts: number) {
     return new Date(ts).toLocaleString();
+  }
+
+  function renderSubtitle(text?: string) {
+    if (!text) return null;
+    const MAX_SUBTITLE = 200;
+    if (text.length <= MAX_SUBTITLE) {
+      return <p style={{ marginTop: "0.35rem", wordBreak: "break-word", whiteSpace: "pre-wrap" }}>{text}</p>;
+    }
+
+    const preview = text.slice(0, MAX_SUBTITLE);
+    return (
+      <div style={{ marginTop: "0.35rem" }}>
+        <p style={{ wordBreak: "break-word", whiteSpace: "pre-wrap" }}>{preview}…</p>
+        <details
+          style={{
+            marginTop: "0.35rem",
+            background: "#f8f9fa",
+            padding: "0.5rem",
+            borderRadius: "6px",
+            border: "1px solid #dee2e6"
+          }}
+        >
+          <summary style={{ cursor: "pointer", color: "#0d6efd", fontWeight: 600 }}>View full details</summary>
+          <pre
+            style={{
+              marginTop: "0.35rem",
+              background: "#212529",
+              color: "#f8f9fa",
+              padding: "0.5rem",
+              borderRadius: "6px",
+              maxHeight: "200px",
+              overflow: "auto",
+              whiteSpace: "pre-wrap"
+            }}
+          >
+            {text}
+          </pre>
+        </details>
+      </div>
+    );
   }
 
   return (
@@ -58,10 +99,10 @@ export function ActionHistoryPanel({
                 {formatTimestamp(action.timestamp)}
               </span>
             </div>
-            {action.subtitle && <p style={{ marginTop: "0.35rem" }}>{action.subtitle}</p>}
-            {action.videoId && (
+            {renderSubtitle(action.subtitle)}
+            {action.videoName && (
               <p style={{ marginTop: "0.35rem", fontSize: "0.9rem", color: "#0d6efd" }}>
-                Video ID: {action.videoId}
+                Video: {action.videoName}
               </p>
             )}
           </div>

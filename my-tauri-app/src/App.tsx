@@ -4,11 +4,11 @@ import { ChatComponent } from "./components/ChatComponent";
 import { ActionHistoryPanel, ActionEntry } from "./components/ActionHistoryPanel";
 
 const HISTORY_STORAGE_KEY = "videoAnalyzerActionHistory";
-const LAST_VIDEO_STORAGE_KEY = "videoAnalyzerLastVideoId";
+const LAST_VIDEO_STORAGE_KEY = "videoAnalyzerLastVideo";
 const MAX_ACTIONS = 40;
 
 function App() {
-  const [currentVideoId, setCurrentVideoId] = useState("");
+  const [currentVideo, setCurrentVideo] = useState<{ id: string; name: string } | null>(null);
   const [actionHistory, setActionHistory] = useState<ActionEntry[]>([]);
 
   useEffect(() => {
@@ -20,15 +20,27 @@ function App() {
         setActionHistory([]);
       }
     }
-    const storedVideoId = localStorage.getItem(LAST_VIDEO_STORAGE_KEY);
-    if (storedVideoId) {
-      setCurrentVideoId(storedVideoId);
+    const storedVideo = localStorage.getItem(LAST_VIDEO_STORAGE_KEY);
+    if (storedVideo) {
+      try {
+        const parsed = JSON.parse(storedVideo);
+        if (parsed?.id && parsed?.name) {
+          setCurrentVideo(parsed);
+        }
+      } catch {
+        setCurrentVideo(null);
+        localStorage.removeItem(LAST_VIDEO_STORAGE_KEY);
+      }
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(LAST_VIDEO_STORAGE_KEY, currentVideoId);
-  }, [currentVideoId]);
+    if (currentVideo?.id && currentVideo?.name) {
+      localStorage.setItem(LAST_VIDEO_STORAGE_KEY, JSON.stringify(currentVideo));
+    } else {
+      localStorage.removeItem(LAST_VIDEO_STORAGE_KEY);
+    }
+  }, [currentVideo]);
 
   useEffect(() => {
     localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(actionHistory));
@@ -44,12 +56,14 @@ function App() {
   }
 
   function handleUploadComplete(videoId: string, filename: string) {
-    setCurrentVideoId(videoId);
+    const nextVideo = { id: videoId, name: filename };
+    setCurrentVideo(nextVideo);
     pushAction({
       type: "upload",
       title: "Uploaded video",
       subtitle: filename,
-      videoId
+      videoId,
+      videoName: filename
     });
   }
 
@@ -58,7 +72,8 @@ function App() {
       type: "chat",
       title: "Chat prompt sent",
       subtitle: `${query}\n---\n${summary}`,
-      videoId: currentVideoId
+      videoId: currentVideo?.id,
+      videoName: currentVideo?.name
     });
   }
 
@@ -74,7 +89,8 @@ function App() {
 
       <div style={{ display: "grid", gap: "1.5rem" }}>
         <ChatComponent
-          videoId={currentVideoId}
+          videoId={currentVideo?.id ?? ""}
+          activeVideoName={currentVideo?.name}
           onVideoUploaded={handleUploadComplete}
           onChatAction={handleChatAction}
         />

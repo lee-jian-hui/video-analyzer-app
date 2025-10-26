@@ -14,8 +14,15 @@ interface ChatMessage {
   timestamp?: number;
 }
 
+interface ConversationEntry {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+}
+
 interface ChatComponentProps {
   videoId: string;
+  activeVideoName?: string;
   onVideoUploaded: (videoId: string, filename: string) => void;
   onChatAction: (query: string, summary: string) => void;
 }
@@ -29,8 +36,9 @@ const RESPONSE_LABELS: Record<number, string> = {
 
 const DEFAULT_RESULT_COPY =
   "Run a query to see the assistant response. Streaming chunks will be rendered here.";
+const MAX_INLINE_CHARS = 400;
 
-export function ChatComponent({ videoId, onVideoUploaded, onChatAction }: ChatComponentProps) {
+export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onChatAction }: ChatComponentProps) {
   const [customQuery, setCustomQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [chatStream, setChatStream] = useState<ChatResponseItem[]>([]);
@@ -39,14 +47,33 @@ export function ChatComponent({ videoId, onVideoUploaded, onChatAction }: ChatCo
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [historyStatus, setHistoryStatus] = useState<"idle" | "loading" | "error">("idle");
   const [historyError, setHistoryError] = useState("");
+  const [conversation, setConversation] = useState<ConversationEntry[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     refreshHistory();
   }, []);
 
+  useEffect(() => {
+    setConversation([]);
+    setResultSummary(DEFAULT_RESULT_COPY);
+    setChatStream([]);
+  }, [videoId]);
+
   function triggerFileDialog() {
     fileInputRef.current?.click();
+  }
+
+  function addConversationEntry(role: "user" | "assistant", content: string) {
+    if (!content) return;
+    setConversation((prev) => [
+      ...prev,
+      {
+        id: `${role}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        role,
+        content: content.trim()
+      }
+    ]);
   }
 
   async function handleFileSelected(event: ChangeEvent<HTMLInputElement>) {
@@ -116,11 +143,52 @@ export function ChatComponent({ videoId, onVideoUploaded, onChatAction }: ChatCo
     return DEFAULT_RESULT_COPY;
   }
 
-  function formatChunk(chunk: ChatResponseItem) {
-    const label = RESPONSE_LABELS[chunk.type] ?? `Type ${chunk.type}`;
-    const agent = chunk.agent_name ? ` · ${chunk.agent_name}` : "";
-    return `${label}${agent}`;
+function formatChunk(chunk: ChatResponseItem) {
+  const label = RESPONSE_LABELS[chunk.type] ?? `Type ${chunk.type}`;
+  const agent = chunk.agent_name ? ` · ${chunk.agent_name}` : "";
+  return `${label}${agent}`;
+}
+
+function renderConversationContent(text: string) {
+  if (!text) return null;
+  if (text.length <= MAX_INLINE_CHARS) {
+    return <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{text}</div>;
   }
+
+  const preview = text.slice(0, MAX_INLINE_CHARS);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+      <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{preview}…</div>
+      <details
+        style={{
+          background: "#f8f9fa",
+          borderRadius: "8px",
+          padding: "0.5rem",
+          border: "1px solid #dee2e6"
+        }}
+      >
+        <summary style={{ cursor: "pointer", color: "#0d6efd", fontWeight: 600 }}>
+          View full response
+        </summary>
+        <pre
+          style={{
+            marginTop: "0.35rem",
+            background: "#212529",
+            color: "#f8f9fa",
+            padding: "0.5rem",
+            borderRadius: "6px",
+            maxHeight: "240px",
+            overflow: "auto",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word"
+          }}
+        >
+          {text}
+        </pre>
+      </details>
+    </div>
+  );
+}
 
   async function refreshHistory(limit = 10) {
     setHistoryStatus("loading");
@@ -150,6 +218,8 @@ export function ChatComponent({ videoId, onVideoUploaded, onChatAction }: ChatCo
       return;
     }
 
+    addConversationEntry("user", query);
+
     setLoading(true);
     setResultSummary("Processing...");
 
@@ -165,22 +235,27 @@ export function ChatComponent({ videoId, onVideoUploaded, onChatAction }: ChatCo
         setChatStream(stream);
         const summary = summarizeStream(stream);
         onChatAction(query, summary);
+        addConversationEntry("assistant", summary);
       } else {
         const result = response as { result?: string; success?: boolean; error_message?: string };
         if (result.success && result.result) {
           setResultSummary(result.result);
           setChatStream([]);
           onChatAction(query, result.result);
+          addConversationEntry("assistant", result.result);
         } else {
-          setResultSummary(
-            result.error_message ? `❌ Error: ${result.error_message}` : "Unexpected response from backend"
-          );
+          const errorMessage =
+            result.error_message ? `❌ Error: ${result.error_message}` : "Unexpected response from backend";
+          setResultSummary(errorMessage);
           setChatStream([]);
+          addConversationEntry("assistant", errorMessage);
         }
       }
     } catch (error) {
-      setResultSummary(`❌ Error sending query: ${error}`);
+      const errorMessage = `❌ Error sending query: ${error}`;
+      setResultSummary(errorMessage);
       setChatStream([]);
+      addConversationEntry("assistant", errorMessage);
     } finally {
       setLoading(false);
       refreshHistory();
@@ -211,57 +286,6 @@ export function ChatComponent({ videoId, onVideoUploaded, onChatAction }: ChatCo
         <p style={{ color: "#555" }}>
           Upload a video using the icon, then send prompts. The result panel shows structured responses and streaming status.
         </p>
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.75rem",
-            background: "#fff",
-            borderRadius: "999px",
-            padding: "0.25rem 0.75rem",
-            border: "1px solid #dee2e6",
-            marginTop: "1rem"
-          }}
-        >
-          <button
-            onClick={triggerFileDialog}
-            style={{
-              width: "42px",
-              height: "42px",
-              borderRadius: "50%",
-              border: "none",
-              background: "#0d6efd",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer"
-            }}
-            title="Upload video"
-          >
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-              <polyline points="7 9 12 4 17 9" />
-              <line x1="12" y1="4" x2="12" y2="16" />
-            </svg>
-          </button>
-
-          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-            <span style={{ fontWeight: 600, color: videoId ? "#198754" : "#6c757d" }}>
-              {videoId ? `Active video: ${videoId}` : "No active video"}
-            </span>
-            <small style={{ color: "#6c757d" }}>{uploadStatus || "Click to upload an MP4 video"}</small>
-          </div>
-        </div>
 
         <div
           style={{
@@ -315,6 +339,108 @@ export function ChatComponent({ videoId, onVideoUploaded, onChatAction }: ChatCo
               {loading ? "Sending..." : "Send"}
             </button>
           </div>
+
+          <div
+            style={{
+              marginTop: "0.75rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem"
+            }}
+          >
+            <button
+              onClick={triggerFileDialog}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.4rem",
+                borderRadius: "999px",
+                border: "1px solid #0d6efd",
+                padding: "0.4rem 0.95rem",
+                background: "#e7f0ff",
+                color: "#0d6efd",
+                fontWeight: 600
+              }}
+              title="Upload MP4"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+                <polyline points="7 9 12 4 17 9" />
+                <line x1="12" y1="4" x2="12" y2="16" />
+              </svg>
+              Upload File
+            </button>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontWeight: 600, color: activeVideoName ? "#198754" : "#6c757d" }}>
+                {activeVideoName ? `Active video: ${activeVideoName}` : "No active video"}
+              </span>
+              <small style={{ color: "#6c757d" }}>
+                {uploadStatus || "Attach an MP4 and it becomes your chat context"}
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            marginTop: "1.25rem",
+            background: "#fff",
+            borderRadius: "16px",
+            border: "1px solid #e9ecef",
+            padding: "1rem"
+          }}
+        >
+          <h3 style={{ marginBottom: "0.75rem" }}>Chat transcript</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            {conversation.length === 0 && (
+              <p style={{ color: "#6c757d" }}>No conversation yet. Send a prompt to get started.</p>
+            )}
+            {conversation.map((entry) => {
+              const isUser = entry.role === "user";
+              return (
+                <div
+                  key={entry.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: isUser ? "flex-end" : "flex-start"
+                  }}
+                >
+                  <div
+                    style={{
+                      maxWidth: "85%",
+                      padding: "0.85rem 1rem",
+                      borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                      background: isUser ? "#dbe7ff" : "#f2f4f7",
+                      color: "#1f1f1f",
+                      textAlign: "left",
+                      boxShadow: "0 2px 6px rgba(15, 23, 42, 0.08)"
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "0.85rem",
+                        fontWeight: 600,
+                        marginBottom: "0.35rem",
+                        color: "#6c757d"
+                      }}
+                    >
+                      {isUser ? "You" : "Assistant"}
+                    </div>
+                    {renderConversationContent(entry.content)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "1rem" }}>
@@ -354,7 +480,10 @@ export function ChatComponent({ videoId, onVideoUploaded, onChatAction }: ChatCo
             padding: "1rem",
             border: "1px solid #e3e6ea",
             minHeight: "120px",
-            whiteSpace: "pre-wrap"
+            maxHeight: "260px",
+            overflowY: "auto",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word"
           }}
         >
           {resultSummary}

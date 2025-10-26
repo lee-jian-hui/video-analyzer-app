@@ -40,7 +40,7 @@ Install these before running `npm run tauri dev`:
 - Node.js 18+ (includes `npm`)
 - Rust toolchain with `cargo` (via [`rustup`](https://rustup.rs/))
 - Protobuf compiler `protoc` for regenerating gRPC bindings (`sudo apt install protobuf-compiler`)
-- Linux desktop packages required by Tauri (Ubuntu/Debian: `sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev`)
+- Linux desktop packages required by Tauri (Ubuntu/Debian: `sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev fonts-noto-color-emoji`)
 
 
 
