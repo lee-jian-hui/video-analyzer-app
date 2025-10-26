@@ -2189,6 +2189,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-opener",
  "tokio",
+ "tokio-stream",
  "tonic",
  "tonic-build",
 ]

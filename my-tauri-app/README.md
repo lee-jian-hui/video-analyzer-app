@@ -34,6 +34,14 @@ This template should help get you started developing with Tauri, React and Types
 
 - [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
 
+## System dependencies
+
+Install these before running `npm run tauri dev`:
+- Node.js 18+ (includes `npm`)
+- Rust toolchain with `cargo` (via [`rustup`](https://rustup.rs/))
+- Protobuf compiler `protoc` for regenerating gRPC bindings (`sudo apt install protobuf-compiler`)
+- Linux desktop packages required by Tauri (Ubuntu/Debian: `sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev`)
+
 
 
 ## Commands:
