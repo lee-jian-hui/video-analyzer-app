@@ -12,9 +12,13 @@
   "app": {
     "windows": [
       {
-        "title": "my-tauri-app",
-        "width": 800,
-        "height": 600
+        "title": "Video AI Processor",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 1000,
+        "minHeight": 720,
+        "resizable": true,
+        "center": true
       }
     ],
     "security": {

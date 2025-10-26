@@ -41,7 +41,15 @@ export function ChatResultsPanel({ resultSummary, chatStream, formatChunk }: Cha
       {chatStream.length > 0 && (
         <div style={{ marginTop: "1.25rem" }}>
           <h3 style={{ marginBottom: "0.75rem" }}>Stream details</h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.75rem",
+              maxHeight: "300px",
+              overflowY: "auto"
+            }}
+          >
             {chatStream.map((chunk, index) => (
               <div
                 key={`${chunk.type}-${index}`}

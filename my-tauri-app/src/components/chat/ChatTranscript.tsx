@@ -19,7 +19,15 @@ export function ChatTranscript({ conversation, renderContent }: ChatTranscriptPr
       }}
     >
       <h3 style={{ marginBottom: "0.75rem" }}>Chat transcript</h3>
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.75rem",
+          maxHeight: "350px",
+          overflowY: "auto"
+        }}
+      >
         {conversation.length === 0 && (
           <p style={{ color: "#6c757d" }}>No conversation yet. Send a prompt to get started.</p>
         )}

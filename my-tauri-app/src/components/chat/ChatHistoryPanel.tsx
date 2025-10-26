@@ -37,7 +37,16 @@ export function ChatHistoryPanel({
       {status === "error" && (
         <p style={{ color: "#dc3545", marginTop: "0.5rem" }}>Failed to load history: {errorMessage}</p>
       )}
-      <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+      <div
+        style={{
+          marginTop: "1rem",
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.75rem",
+          maxHeight: "300px",
+          overflowY: "auto"
+        }}
+      >
         {history.length === 0 && status !== "loading" && (
           <p style={{ color: "#6c757d" }}>No cached history yet. Run a query to populate this panel.</p>
         )}

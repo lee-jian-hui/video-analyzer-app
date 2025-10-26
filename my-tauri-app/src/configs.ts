@@ -7,10 +7,10 @@ const coerceNumber = (value: NumericEnv, fallback: number): number => {
 };
 
 export const appLayoutConfig = {
-  defaultWidth: coerceNumber(import.meta.env.VITE_APP_DEFAULT_WIDTH, 1000),
-  defaultHeight: coerceNumber(import.meta.env.VITE_APP_DEFAULT_HEIGHT, 720),
+  defaultWidth: coerceNumber(import.meta.env.VITE_APP_DEFAULT_WIDTH, 1200),
+  defaultHeight: coerceNumber(import.meta.env.VITE_APP_DEFAULT_HEIGHT, 800),
   fullscreenBreakpoint: coerceNumber(import.meta.env.VITE_APP_FULLSCREEN_BREAKPOINT, 1400),
-  containerPaddingTopVH: coerceNumber(import.meta.env.VITE_APP_CONTAINER_PADDING_TOP, 8),
+  containerPaddingTopVH: coerceNumber(import.meta.env.VITE_APP_CONTAINER_PADDING_TOP, 4),
 };
 
 export const historyConfig = {
