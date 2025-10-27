@@ -1,9 +1,10 @@
 use serde_json::Value;
 use tokio_stream::iter;
 use tonic::{transport::Channel, Request};
+use log::{info, debug, warn, error};
 
 mod config;
-use config::GrpcConfig;
+use config::{AppConfig, GrpcConfig};
 
 pub mod video_analyzer {
     tonic::include_proto!("video_analyzer");
@@ -38,13 +39,35 @@ fn build_video_chunks(filename: &str, video_data: Vec<u8>) -> Vec<VideoChunk> {
 async fn collect_chat_stream(
     mut stream: tonic::Streaming<ChatResponse>,
 ) -> Result<Value, String> {
-    let mut responses = Vec::new();
-    while let Some(message) = stream
-        .message()
-        .await
-        .map_err(|e| format!("Chat stream error: {}", e))?
-    {
-        responses.push(message);
+    use video_analyzer::chat_response::ResponseType;
+
+    let mut responses: Vec<ChatResponse> = Vec::new();
+
+    loop {
+        match stream.message().await {
+            Ok(Some(message)) => {
+                responses.push(message);
+            }
+            Ok(None) => {
+                // Normal end of stream
+                break;
+            }
+            Err(e) => {
+                // Append an ERROR chunk so the frontend still receives an array
+                let err_msg = format!(
+                    "Stream interrupted: {}. Some partial results may be missing.",
+                    e
+                );
+                warn!("gRPC chat stream error: {}", err_msg);
+                responses.push(ChatResponse {
+                    r#type: ResponseType::Error as i32,
+                    content: err_msg,
+                    agent_name: "system".to_string(),
+                    result_json: String::new(),
+                });
+                break;
+            }
+        }
     }
 
     serde_json::to_value(responses).map_err(|e| format!("Failed to serialize chat stream: {}", e))
@@ -198,7 +221,16 @@ async fn get_processing_status(_limit: i32) -> Result<Value, String> {
 
 // #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Get log level from environment (reads LOG_LEVEL env var)
+    let log_level = AppConfig::log_level();
+
     tauri::Builder::default()
+        // Initialize logging plugin with env-based level
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(log_level)
+                .build()
+        )
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             greet,

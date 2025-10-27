@@ -8,22 +8,39 @@ interface ChatComponentProps {
   activeVideoName?: string;
   onVideoUploaded: (videoId: string, filename: string) => void;
   onChatAction: (query: string, summary: string, stream: ChatResponseItem[]) => void;
+  initialAssistantMessage?: string;
+  resumeLoading?: boolean;
 }
 
 const DEFAULT_RESULT_COPY =
   "Run a query to see the assistant response. Streaming chunks will be rendered here.";
 const MAX_INLINE_CHARS = 400;
 
-export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onChatAction }: ChatComponentProps) {
+export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onChatAction, initialAssistantMessage, resumeLoading }: ChatComponentProps) {
   const [customQuery, setCustomQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
   const [conversation, setConversation] = useState<ConversationEntry[]>([]);
+  const [clearing, setClearing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setConversation([]);
   }, [videoId]);
+
+  // Seed assistant message when resuming a session
+  useEffect(() => {
+    const msg = initialAssistantMessage?.trim();
+    if (msg && conversation.length === 0) {
+      setConversation([
+        {
+          id: `assistant-seed-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          role: "assistant",
+          content: msg,
+        },
+      ]);
+    }
+  }, [initialAssistantMessage, videoId]);
 
   function triggerFileDialog() {
     fileInputRef.current?.click();
@@ -87,6 +104,23 @@ export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onCha
       setUploadStatus(`❌ Upload error: ${error}`);
     } finally {
       event.target.value = "";
+    }
+  }
+
+  async function handleClearChat() {
+    if (!videoId) return;
+    if (typeof window !== "undefined") {
+      const yes = window.confirm("Clear chat history for the current video? This cannot be undone.");
+      if (!yes) return;
+    }
+    setClearing(true);
+    try {
+      await invoke("clear_chat_history", { video_id: videoId });
+      setConversation([]);
+    } catch (err) {
+      console.error("Failed to clear chat history:", err);
+    } finally {
+      setClearing(false);
     }
   }
 
@@ -227,13 +261,16 @@ function renderConversationContent(text: string) {
         customQuery={customQuery}
         onQueryChange={(value) => setCustomQuery(value)}
         onSend={processQuery}
-        canSend={!!customQuery.trim() && !!videoId && !loading}
+        canSend={!!customQuery.trim() && !!videoId && !loading && !resumeLoading}
         loading={loading}
+        resumeLoading={!!resumeLoading}
         activeVideoName={activeVideoName}
         uploadStatus={uploadStatus}
         onUploadClick={triggerFileDialog}
         onQuickAction={handleQuickAction}
         videoId={videoId}
+        onClearChat={handleClearChat}
+        clearing={clearing}
       />
     </>
   );

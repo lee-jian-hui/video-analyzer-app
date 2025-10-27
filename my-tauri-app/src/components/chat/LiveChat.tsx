@@ -8,11 +8,14 @@ interface LiveChatProps {
   onSend: () => void;
   canSend: boolean;
   loading: boolean;
+  resumeLoading?: boolean;
   activeVideoName?: string;
   uploadStatus: string;
   onUploadClick: () => void;
   onQuickAction: (prompt: string) => void;
   videoId: string;
+  onClearChat: () => void;
+  clearing?: boolean;
 }
 
 export function LiveChat({
@@ -23,11 +26,14 @@ export function LiveChat({
   onSend,
   canSend,
   loading,
+  resumeLoading,
   activeVideoName,
   uploadStatus,
   onUploadClick,
   onQuickAction,
-  videoId
+  videoId,
+  onClearChat,
+  clearing
 }: LiveChatProps) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -60,7 +66,9 @@ export function LiveChat({
         }}
       >
         {conversation.length === 0 && (
-          <p style={{ color: "#6c757d" }}>No conversation yet. Send a prompt to get started.</p>
+          <p style={{ color: "#6c757d" }}>
+            {resumeLoading ? "Loading previous session summary…" : "No conversation yet. Send a prompt to get started."}
+          </p>
         )}
         {conversation
           .filter((entry) => entry && entry.content && entry.content.trim())
@@ -118,6 +126,21 @@ export function LiveChat({
             </div>
           </div>
         )}
+        {resumeLoading && !loading && (
+          <div style={{ display: "flex", justifyContent: "flex-start" }}>
+            <div
+              style={{
+                padding: "0.85rem 1rem",
+                borderRadius: "18px 18px 18px 4px",
+                background: "#f2f4f7",
+                color: "#6c757d",
+                fontStyle: "italic"
+              }}
+            >
+              Loading previous session summary…
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Upload Status and Quick Actions */}
@@ -168,55 +191,71 @@ export function LiveChat({
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
           <button
             onClick={() => onQuickAction("Transcribe the entire video and provide the full transcript.")}
-            disabled={!videoId || loading}
+            disabled={!videoId || loading || !!resumeLoading}
             style={{
               padding: "0.4rem 0.95rem",
               borderRadius: "8px",
               border: "1px solid #dee2e6",
-              background: videoId && !loading ? "#fff" : "#f8f9fa",
-              cursor: videoId && !loading ? "pointer" : "not-allowed"
+              background: videoId && !loading && !resumeLoading ? "#fff" : "#f8f9fa",
+              cursor: videoId && !loading && !resumeLoading ? "pointer" : "not-allowed"
             }}
           >
             📝 Transcribe
           </button>
           <button
             onClick={() => onQuickAction("Summarize the key points and main themes of this video.")}
-            disabled={!videoId || loading}
+            disabled={!videoId || loading || !!resumeLoading}
             style={{
               padding: "0.4rem 0.95rem",
               borderRadius: "8px",
               border: "1px solid #dee2e6",
-              background: videoId && !loading ? "#fff" : "#f8f9fa",
-              cursor: videoId && !loading ? "pointer" : "not-allowed"
+              background: videoId && !loading && !resumeLoading ? "#fff" : "#f8f9fa",
+              cursor: videoId && !loading && !resumeLoading ? "pointer" : "not-allowed"
             }}
           >
             📋 Summarize
           </button>
           <button
-            onClick={() => onQuickAction("Analyze and describe all objects, people, and scenes visible in this video.")}
-            disabled={!videoId || loading}
+            onClick={() => onQuickAction("Detect all obejcts in the video")}
+            disabled={!videoId || loading || !!resumeLoading}
             style={{
               padding: "0.4rem 0.95rem",
               borderRadius: "8px",
               border: "1px solid #dee2e6",
-              background: videoId && !loading ? "#fff" : "#f8f9fa",
-              cursor: videoId && !loading ? "pointer" : "not-allowed"
+              background: videoId && !loading && !resumeLoading ? "#fff" : "#f8f9fa",
+              cursor: videoId && !loading && !resumeLoading ? "pointer" : "not-allowed"
             }}
           >
             🔍 Analyze Objects
           </button>
           <button
             onClick={() => onQuickAction("Generate a PDF Report of the video")}
-            disabled={!videoId || loading}
+            disabled={!videoId || loading || !!resumeLoading}
             style={{
               padding: "0.4rem 0.95rem",
               borderRadius: "8px",
               border: "1px solid #dee2e6",
-              background: videoId && !loading ? "#fff" : "#f8f9fa",
-              cursor: videoId && !loading ? "pointer" : "not-allowed"
+              background: videoId && !loading && !resumeLoading ? "#fff" : "#f8f9fa",
+              cursor: videoId && !loading && !resumeLoading ? "pointer" : "not-allowed"
             }}
           >
             📊 PDF Report
+          </button>
+
+          <button
+            onClick={onClearChat}
+            disabled={!videoId || loading || clearing}
+            title={videoId ? "Clear current chat history" : "No active video"}
+            style={{
+              padding: "0.4rem 0.95rem",
+              borderRadius: "8px",
+              border: "1px solid #f1c0c0",
+              background: !videoId || loading || clearing ? "#f8f9fa" : "#fff4f4",
+              color: "#b02a37",
+              cursor: !videoId || loading || clearing ? "not-allowed" : "pointer"
+            }}
+          >
+            {clearing ? "Clearing…" : "🧹 Clear Chat"}
           </button>
         </div>
       </div>
@@ -249,7 +288,7 @@ export function LiveChat({
             background: "transparent",
             minHeight: "96px"
           }}
-          disabled={loading}
+          disabled={loading || !!resumeLoading}
         />
         <button
           onClick={onSend}

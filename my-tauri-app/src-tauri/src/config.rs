@@ -54,10 +54,35 @@ impl GrpcConfig {
 pub struct AppConfig;
 
 impl AppConfig {
-    /// Get log level
-    pub fn log_level() -> String {
+    /// Get log level from environment variable
+    ///
+    /// Reads LOG_LEVEL environment variable and returns appropriate log::LevelFilter
+    ///
+    /// Priority:
+    /// 1. LOG_LEVEL environment variable
+    /// 2. Default based on build mode (debug = debug, release = info)
+    ///
+    /// Valid values: trace, debug, info, warn, error, off
+    pub fn log_level() -> log::LevelFilter {
         env::var("LOG_LEVEL")
-            .unwrap_or_else(|_| "info".to_string())
+            .ok()
+            .and_then(|level| match level.to_lowercase().as_str() {
+                "trace" => Some(log::LevelFilter::Trace),
+                "debug" => Some(log::LevelFilter::Debug),
+                "info" => Some(log::LevelFilter::Info),
+                "warn" => Some(log::LevelFilter::Warn),
+                "error" => Some(log::LevelFilter::Error),
+                "off" => Some(log::LevelFilter::Off),
+                _ => None,
+            })
+            .unwrap_or_else(|| {
+                // Default: debug in dev, info in release
+                if cfg!(debug_assertions) {
+                    log::LevelFilter::Debug
+                } else {
+                    log::LevelFilter::Info
+                }
+            })
     }
 
     /// Check if running in development mode

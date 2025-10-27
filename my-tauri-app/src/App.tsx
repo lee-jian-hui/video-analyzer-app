@@ -33,6 +33,8 @@ function App() {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [historyStatus, setHistoryStatus] = useState<"idle" | "loading" | "error">("idle");
   const [historyError, setHistoryError] = useState("");
+  const [initialAssistantMessage, setInitialAssistantMessage] = useState<string | null>(null);
+  const [resumeLoading, setResumeLoading] = useState(false);
 
   useEffect(() => {
     // Restore action history from localStorage
@@ -76,6 +78,78 @@ function App() {
 
   useEffect(() => {
     refreshChatHistory();
+  }, []);
+
+  // Prompt user to optionally continue from last session and seed chat
+  useEffect(() => {
+    async function maybeResumeLastSession() {
+      try {
+        const resp = await invoke("get_last_session");
+        const last = resp as {
+          has_session?: boolean;
+          video_id?: string;
+          video_name?: string;
+        };
+
+        if (!last?.has_session) return;
+        if (typeof window === "undefined") return;
+
+        const name = last.video_name ?? "previous video";
+        const shouldContinue = window.confirm(
+          `Continue from previous session with \"${name}\"?\nClick OK to resume, or Cancel to start fresh.`
+        );
+
+        if (shouldContinue && last.video_id) {
+          // Set the active video and fetch summarized history
+          setCurrentVideo({ id: last.video_id, name: last.video_name ?? "Untitled" });
+          try {
+            setResumeLoading(true);
+            const historyResp = await invoke("get_chat_history", {
+              video_id: last.video_id,
+              include_full_messages: false,
+            });
+            const history = historyResp as {
+              conversation_summary?: string;
+              recent_messages?: { role?: string; content?: string }[];
+            };
+
+            if (history?.conversation_summary && history.conversation_summary.trim()) {
+              setInitialAssistantMessage(history.conversation_summary.trim());
+            } else if (history?.recent_messages && history.recent_messages.length > 0) {
+              const recap = history.recent_messages
+                .slice(-6)
+                .map((m) => `${m.role ?? "assistant"}: ${m.content ?? ""}`.trim())
+                .filter(Boolean)
+                .join("\n");
+              const fallback = recap
+                ? `Here’s a quick recap from your last session:\n${recap}`
+                : "Resuming your last session. No summary available, but you can continue chatting.";
+              setInitialAssistantMessage(fallback);
+            } else {
+              setInitialAssistantMessage(
+                "Resuming your last session. No prior summary was found; feel free to continue."
+              );
+            }
+          } catch (err) {
+            console.error("Failed to fetch summarized chat history:", err);
+          } finally {
+            setResumeLoading(false);
+          }
+        } else if (!shouldContinue && last.video_id) {
+          // Clear server-side chat history and start fresh
+          try {
+            await invoke("clear_chat_history", { video_id: last.video_id });
+          } catch (err) {
+            console.error("Failed to clear chat history:", err);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to check last session:", error);
+      }
+    }
+
+    maybeResumeLastSession();
+    // Only run on first mount
   }, []);
 
   async function refreshChatHistory(limit = historyConfig.limit) {
@@ -173,6 +247,7 @@ function App() {
           activeVideoName={currentVideo?.name}
           onVideoUploaded={handleUploadComplete}
           onChatAction={handleChatAction}
+          initialAssistantMessage={initialAssistantMessage ?? undefined}
         />
 
         {/* <ChatResultsPanel
