@@ -1,24 +1,14 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { LiveChat } from "./chat/LiveChat";
-import { ChatResultsPanel } from "./chat/ChatResultsPanel";
-import { ChatHistoryPanel } from "./chat/ChatHistoryPanel";
-import type { ChatResponseItem, ChatMessage, ConversationEntry } from "./chat/types";
-import { historyConfig } from "../configs";
+import type { ChatResponseItem, ConversationEntry } from "./chat/types";
 
 interface ChatComponentProps {
   videoId: string;
   activeVideoName?: string;
   onVideoUploaded: (videoId: string, filename: string) => void;
-  onChatAction: (query: string, summary: string) => void;
+  onChatAction: (query: string, summary: string, stream: ChatResponseItem[]) => void;
 }
-
-const RESPONSE_LABELS: Record<number, string> = {
-  0: "Message",
-  1: "Progress",
-  2: "Result",
-  3: "Error"
-};
 
 const DEFAULT_RESULT_COPY =
   "Run a query to see the assistant response. Streaming chunks will be rendered here.";
@@ -27,23 +17,12 @@ const MAX_INLINE_CHARS = 400;
 export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onChatAction }: ChatComponentProps) {
   const [customQuery, setCustomQuery] = useState("");
   const [loading, setLoading] = useState(false);
-  const [chatStream, setChatStream] = useState<ChatResponseItem[]>([]);
-  const [resultSummary, setResultSummary] = useState(DEFAULT_RESULT_COPY);
   const [uploadStatus, setUploadStatus] = useState("");
-  const [history, setHistory] = useState<ChatMessage[]>([]);
-  const [historyStatus, setHistoryStatus] = useState<"idle" | "loading" | "error">("idle");
-  const [historyError, setHistoryError] = useState("");
   const [conversation, setConversation] = useState<ConversationEntry[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    refreshHistory();
-  }, []);
-
-  useEffect(() => {
     setConversation([]);
-    setResultSummary(DEFAULT_RESULT_COPY);
-    setChatStream([]);
   }, [videoId]);
 
   function triggerFileDialog() {
@@ -51,13 +30,26 @@ export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onCha
   }
 
   function addConversationEntry(role: "user" | "assistant", content: string) {
-    if (!content) return;
+    // Ensure content is valid and not empty
+    if (!content || typeof content !== 'string' || !content.trim()) {
+      console.warn(`Skipping conversation entry with invalid content:`, content);
+      return;
+    }
+
+    const trimmedContent = content.trim();
+
+    // Avoid adding duplicate DEFAULT_RESULT_COPY messages
+    if (trimmedContent === DEFAULT_RESULT_COPY) {
+      console.warn(`Skipping default placeholder message`);
+      return;
+    }
+
     setConversation((prev) => [
       ...prev,
       {
         id: `${role}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         role,
-        content: content.trim()
+        content: trimmedContent
       }
     ]);
   }
@@ -98,14 +90,8 @@ export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onCha
     }
   }
 
-  function formatHistoryTimestamp(ts?: number) {
-    if (!ts) return "";
-    return new Date(ts * 1000).toLocaleString();
-  }
-
   function summarizeStream(stream: ChatResponseItem[]) {
     if (!stream.length) {
-      setResultSummary(DEFAULT_RESULT_COPY);
       return DEFAULT_RESULT_COPY;
     }
 
@@ -115,33 +101,29 @@ export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onCha
       reversed.find((chunk) => chunk.content);
 
     if (bestChunk?.content) {
-      const summary = bestChunk.content.trim();
-      setResultSummary(summary);
-      return summary;
+      return bestChunk.content.trim();
     }
 
     if (bestChunk?.result_json) {
-      setResultSummary(bestChunk.result_json);
       return bestChunk.result_json;
     }
 
-    setResultSummary(DEFAULT_RESULT_COPY);
     return DEFAULT_RESULT_COPY;
   }
 
-function formatChunk(chunk: ChatResponseItem) {
-  const label = RESPONSE_LABELS[chunk.type] ?? `Type ${chunk.type}`;
-  const agent = chunk.agent_name ? ` · ${chunk.agent_name}` : "";
-  return `${label}${agent}`;
-}
-
 function renderConversationContent(text: string) {
-  if (!text) return null;
-  if (text.length <= MAX_INLINE_CHARS) {
-    return <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{text}</div>;
+  // Handle undefined, null, or empty strings
+  if (!text || typeof text !== 'string' || !text.trim()) {
+    return <div style={{ color: "#dc3545", fontStyle: "italic" }}>(empty response)</div>;
   }
 
-  const preview = text.slice(0, MAX_INLINE_CHARS);
+  const trimmedText = text.trim();
+
+  if (trimmedText.length <= MAX_INLINE_CHARS) {
+    return <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{trimmedText}</div>;
+  }
+
+  const preview = trimmedText.slice(0, MAX_INLINE_CHARS);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
       <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{preview}…</div>
@@ -169,37 +151,21 @@ function renderConversationContent(text: string) {
             wordBreak: "break-word"
           }}
         >
-          {text}
+          {trimmedText}
         </pre>
       </details>
     </div>
   );
 }
 
-  async function refreshHistory(limit = historyConfig.limit) {
-    setHistoryStatus("loading");
-    setHistoryError("");
-    try {
-      const response = await invoke("get_processing_status", { limit });
-      const parsed = response as { messages?: ChatMessage[] };
-      setHistory(parsed.messages ?? []);
-      setHistoryStatus("idle");
-    } catch (error) {
-      setHistoryStatus("error");
-      setHistoryError(String(error));
-    }
-  }
-
   async function processQuery() {
     if (!videoId) {
-      setResultSummary("❌ Upload a video first – there is no active video.");
       return;
     }
 
     const query = customQuery.trim();
 
     if (!query) {
-      setResultSummary("❌ Please provide a query.");
       return;
     }
 
@@ -207,7 +173,6 @@ function renderConversationContent(text: string) {
     setCustomQuery(""); // Clear input after sending
 
     setLoading(true);
-    setResultSummary("Processing...");
 
     try {
       const response = await invoke("process_query", {
@@ -218,33 +183,27 @@ function renderConversationContent(text: string) {
 
       if (Array.isArray(response)) {
         const stream = response as ChatResponseItem[];
-        setChatStream(stream);
         const summary = summarizeStream(stream);
-        onChatAction(query, summary);
+        onChatAction(query, summary, stream);
         addConversationEntry("assistant", summary);
       } else {
         const result = response as { result?: string; success?: boolean; error_message?: string };
         if (result.success && result.result) {
-          setResultSummary(result.result);
-          setChatStream([]);
-          onChatAction(query, result.result);
+          onChatAction(query, result.result, []);
           addConversationEntry("assistant", result.result);
         } else {
           const errorMessage =
             result.error_message ? `❌ Error: ${result.error_message}` : "Unexpected response from backend";
-          setResultSummary(errorMessage);
-          setChatStream([]);
           addConversationEntry("assistant", errorMessage);
+          onChatAction(query, errorMessage, []);
         }
       }
     } catch (error) {
       const errorMessage = `❌ Error sending query: ${error}`;
-      setResultSummary(errorMessage);
-      setChatStream([]);
       addConversationEntry("assistant", errorMessage);
+      onChatAction(query, errorMessage, []);
     } finally {
       setLoading(false);
-      refreshHistory();
     }
   }
 
@@ -253,7 +212,7 @@ function renderConversationContent(text: string) {
   }
 
   return (
-    <div className="chat-layout" style={{ display: "grid", gap: "1.5rem", width: "100%", boxSizing: "border-box" }}>
+    <>
       <input
         type="file"
         accept=".mp4,video/mp4"
@@ -276,16 +235,6 @@ function renderConversationContent(text: string) {
         onQuickAction={handleQuickAction}
         videoId={videoId}
       />
-
-      <ChatResultsPanel resultSummary={resultSummary} chatStream={chatStream} formatChunk={formatChunk} />
-
-      <ChatHistoryPanel
-        history={history}
-        status={historyStatus}
-        errorMessage={historyError}
-        onRefresh={refreshHistory}
-        formatTimestamp={formatHistoryTimestamp}
-      />
-    </div>
+    </>
   );
 }

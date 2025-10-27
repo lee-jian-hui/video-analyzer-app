@@ -8,7 +8,7 @@ pub mod video_analyzer {
 
 use video_analyzer::{
     video_analyzer_service_client::VideoAnalyzerServiceClient, ChatRequest, ChatResponse,
-    HistoryRequest, RegisterVideoRequest, VideoChunk,
+    HistoryRequest, RegisterVideoRequest, VerifyVideoRequest, VideoChunk,
 };
 
 // Constants

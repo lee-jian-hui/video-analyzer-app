@@ -62,45 +62,47 @@ export function LiveChat({
         {conversation.length === 0 && (
           <p style={{ color: "#6c757d" }}>No conversation yet. Send a prompt to get started.</p>
         )}
-        {conversation.map((entry) => {
-          const isUser = entry.role === "user";
-          return (
-            <div
-              key={entry.id}
-              style={{
-                display: "flex",
-                justifyContent: isUser ? "flex-end" : "flex-start"
-              }}
-            >
+        {conversation
+          .filter((entry) => entry && entry.content && entry.content.trim())
+          .map((entry) => {
+            const isUser = entry.role === "user";
+            return (
               <div
+                key={entry.id}
                 style={{
-                  width: "min(70%, 560px)",
-                  maxWidth: "100%",
-                  padding: "0.85rem 1rem",
-                  borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-                  background: isUser ? "#dbe7ff" : "#f2f4f7",
-                  color: "#1f1f1f",
-                  textAlign: "left",
-                  boxShadow: "0 2px 6px rgba(15, 23, 42, 0.08)",
-                  wordBreak: "break-word",
-                  boxSizing: "border-box"
+                  display: "flex",
+                  justifyContent: isUser ? "flex-end" : "flex-start"
                 }}
               >
                 <div
                   style={{
-                    fontSize: "0.85rem",
-                    fontWeight: 600,
-                    marginBottom: "0.35rem",
-                    color: "#6c757d"
+                    width: "min(70%, 560px)",
+                    maxWidth: "100%",
+                    padding: "0.85rem 1rem",
+                    borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                    background: isUser ? "#dbe7ff" : "#f2f4f7",
+                    color: "#1f1f1f",
+                    textAlign: "left",
+                    boxShadow: "0 2px 6px rgba(15, 23, 42, 0.08)",
+                    wordBreak: "break-word",
+                    boxSizing: "border-box"
                   }}
                 >
-                  {isUser ? "You" : "Assistant"}
+                  <div
+                    style={{
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      marginBottom: "0.35rem",
+                      color: "#6c757d"
+                    }}
+                  >
+                    {isUser ? "You" : "Assistant"}
+                  </div>
+                  {renderContent(entry.content)}
                 </div>
-                {renderContent(entry.content)}
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
         {loading && (
           <div style={{ display: "flex", justifyContent: "flex-start" }}>
             <div
@@ -204,7 +206,7 @@ export function LiveChat({
             🔍 Analyze Objects
           </button>
           <button
-            onClick={() => onQuickAction("Extract any tables, graphs, charts, or structured data shown in the video.")}
+            onClick={() => onQuickAction("Generate a PDF Report of the video")}
             disabled={!videoId || loading}
             style={{
               padding: "0.4rem 0.95rem",
@@ -214,7 +216,7 @@ export function LiveChat({
               cursor: videoId && !loading ? "pointer" : "not-allowed"
             }}
           >
-            📊 Extract Data
+            📊 PDF Report
           </button>
         </div>
       </div>

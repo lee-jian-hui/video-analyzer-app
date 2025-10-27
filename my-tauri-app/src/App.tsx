@@ -2,11 +2,21 @@ import { useEffect, useState, type CSSProperties } from "react";
 import "./App.css";
 import { ChatComponent } from "./components/ChatComponent";
 import { ActionHistoryPanel, ActionEntry } from "./components/ActionHistoryPanel";
-import { appLayoutConfig, isFullscreenViewport } from "./configs";
+import { ChatResultsPanel } from "./components/chat/ChatResultsPanel";
+import { ChatHistoryPanel } from "./components/chat/ChatHistoryPanel";
+import type { ChatResponseItem, ChatMessage } from "./components/chat/types";
+import { appLayoutConfig, isFullscreenViewport, historyConfig } from "./configs";
+import { invoke } from "@tauri-apps/api/core";
+import { storageManager, StorageKey } from "./utils/localStorageManager";
 
-const HISTORY_STORAGE_KEY = "videoAnalyzerActionHistory";
-const LAST_VIDEO_STORAGE_KEY = "videoAnalyzerLastVideo";
 const MAX_ACTIONS = 40;
+const DEFAULT_RESULT_COPY = "Run a query to see the assistant response. Streaming chunks will be rendered here.";
+const RESPONSE_LABELS: Record<number, string> = {
+  0: "Message",
+  1: "Progress",
+  2: "Result",
+  3: "Error"
+};
 
 function App() {
   const [currentVideo, setCurrentVideo] = useState<{ id: string; name: string } | null>(null);
@@ -15,34 +25,41 @@ function App() {
     typeof window !== "undefined" ? window.innerWidth : appLayoutConfig.defaultWidth
   );
 
+  // Chat results state
+  const [resultSummary, setResultSummary] = useState(DEFAULT_RESULT_COPY);
+  const [chatStream, setChatStream] = useState<ChatResponseItem[]>([]);
+
+  // Chat history state
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [historyStatus, setHistoryStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [historyError, setHistoryError] = useState("");
+
   useEffect(() => {
-    const storedHistory = localStorage.getItem(HISTORY_STORAGE_KEY);
-    if (storedHistory) {
-      try {
-        setActionHistory(JSON.parse(storedHistory));
-      } catch {
-        setActionHistory([]);
-      }
+    // Restore action history from localStorage
+    const storedHistory = storageManager.get(StorageKey.ACTION_HISTORY, []);
+    setActionHistory(storedHistory);
+
+    // Restore last video from localStorage
+    const storedVideo = storageManager.get(StorageKey.LAST_VIDEO, null);
+    if (storedVideo?.id && storedVideo?.name) {
+      setCurrentVideo(storedVideo);
     }
-    const storedVideo = localStorage.getItem(LAST_VIDEO_STORAGE_KEY);
-    if (storedVideo) {
-      try {
-        const parsed = JSON.parse(storedVideo);
-        if (parsed?.id && parsed?.name) {
-          setCurrentVideo(parsed);
-        }
-      } catch {
-        setCurrentVideo(null);
-        localStorage.removeItem(LAST_VIDEO_STORAGE_KEY);
-      }
+
+    // Print debug summary in development
+    if (import.meta.env.DEV) {
+      storageManager.debugPrintSummary();
     }
   }, []);
 
   useEffect(() => {
     if (currentVideo?.id && currentVideo?.name) {
-      localStorage.setItem(LAST_VIDEO_STORAGE_KEY, JSON.stringify(currentVideo));
+      storageManager.set(StorageKey.LAST_VIDEO, {
+        id: currentVideo.id,
+        name: currentVideo.name,
+        uploadedAt: Date.now()
+      });
     } else {
-      localStorage.removeItem(LAST_VIDEO_STORAGE_KEY);
+      storageManager.remove(StorageKey.LAST_VIDEO);
     }
   }, [currentVideo]);
 
@@ -54,8 +71,37 @@ function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(actionHistory));
+    storageManager.set(StorageKey.ACTION_HISTORY, actionHistory);
   }, [actionHistory]);
+
+  useEffect(() => {
+    refreshChatHistory();
+  }, []);
+
+  async function refreshChatHistory(limit = historyConfig.limit) {
+    setHistoryStatus("loading");
+    setHistoryError("");
+    try {
+      const response = await invoke("get_processing_status", { limit });
+      const parsed = response as { messages?: ChatMessage[] };
+      setChatHistory(parsed.messages ?? []);
+      setHistoryStatus("idle");
+    } catch (error) {
+      setHistoryStatus("error");
+      setHistoryError(String(error));
+    }
+  }
+
+  function formatHistoryTimestamp(ts?: number) {
+    if (!ts) return "";
+    return new Date(ts * 1000).toLocaleString();
+  }
+
+  function formatChunk(chunk: ChatResponseItem) {
+    const label = RESPONSE_LABELS[chunk.type] ?? `Type ${chunk.type}`;
+    const agent = chunk.agent_name ? ` · ${chunk.agent_name}` : "";
+    return `${label}${agent}`;
+  }
 
   function pushAction(entry: Omit<ActionEntry, "id" | "timestamp">) {
     const newEntry: ActionEntry = {
@@ -78,7 +124,7 @@ function App() {
     });
   }
 
-  function handleChatAction(query: string, summary: string) {
+  function handleChatAction(query: string, summary: string, stream: ChatResponseItem[]) {
     pushAction({
       type: "chat",
       title: "Chat prompt sent",
@@ -86,11 +132,18 @@ function App() {
       videoId: currentVideo?.id,
       videoName: currentVideo?.name
     });
+
+    // Update results panel
+    setResultSummary(summary);
+    setChatStream(stream);
+
+    // Refresh chat history
+    refreshChatHistory();
   }
 
   function clearHistory() {
     setActionHistory([]);
-    localStorage.removeItem(HISTORY_STORAGE_KEY);
+    storageManager.remove(StorageKey.ACTION_HISTORY);
   }
 
   const fullscreen = isFullscreenViewport(viewportWidth);
@@ -121,7 +174,22 @@ function App() {
           onVideoUploaded={handleUploadComplete}
           onChatAction={handleChatAction}
         />
-        <ActionHistoryPanel actions={actionHistory} onClearHistory={clearHistory} />
+
+        {/* <ChatResultsPanel
+          resultSummary={resultSummary}
+          chatStream={chatStream}
+          formatChunk={formatChunk}
+        />
+
+        <ChatHistoryPanel
+          history={chatHistory}
+          status={historyStatus}
+          errorMessage={historyError}
+          onRefresh={refreshChatHistory}
+          formatTimestamp={formatHistoryTimestamp}
+        />
+
+        <ActionHistoryPanel actions={actionHistory} onClearHistory={clearHistory} /> */}
       </div>
     </main>
   );
