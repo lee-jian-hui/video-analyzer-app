@@ -10,13 +10,14 @@ interface ChatComponentProps {
   onChatAction: (query: string, summary: string, stream: ChatResponseItem[]) => void;
   initialAssistantMessage?: string;
   resumeLoading?: boolean;
+  backendReady?: boolean;
 }
 
 const DEFAULT_RESULT_COPY =
   "Run a query to see the assistant response. Streaming chunks will be rendered here.";
 const MAX_INLINE_CHARS = 400;
 
-export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onChatAction, initialAssistantMessage, resumeLoading }: ChatComponentProps) {
+export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onChatAction, initialAssistantMessage, resumeLoading, backendReady }: ChatComponentProps) {
   const [customQuery, setCustomQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
@@ -25,6 +26,7 @@ export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onCha
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    console.log("[Chat] Active video changed:", videoId, "— clearing local conversation");
     setConversation([]);
   }, [videoId]);
 
@@ -32,6 +34,7 @@ export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onCha
   useEffect(() => {
     const msg = initialAssistantMessage?.trim();
     if (msg && conversation.length === 0) {
+      console.log("[Chat] Seeding assistant resume message (chars):", msg.length);
       setConversation([
         {
           id: `assistant-seed-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -43,6 +46,10 @@ export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onCha
   }, [initialAssistantMessage, videoId]);
 
   function triggerFileDialog() {
+    if (!backendReady) {
+      console.warn("[Chat] Upload blocked — backend not ready");
+      return;
+    }
     fileInputRef.current?.click();
   }
 
@@ -115,6 +122,7 @@ export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onCha
     }
     setClearing(true);
     try {
+      console.log("[Chat] Clearing server chat history for:", videoId);
       await invoke("clear_chat_history", { video_id: videoId });
       setConversation([]);
     } catch (err) {
@@ -194,6 +202,7 @@ function renderConversationContent(text: string) {
 
   async function processQuery() {
     if (!videoId) {
+      console.warn("[Chat] Cannot send — no active video");
       return;
     }
 
@@ -206,6 +215,7 @@ function renderConversationContent(text: string) {
     addConversationEntry("user", query);
     setCustomQuery(""); // Clear input after sending
 
+    console.log("[Chat] Sending query:", query);
     setLoading(true);
 
     try {
@@ -237,6 +247,7 @@ function renderConversationContent(text: string) {
       addConversationEntry("assistant", errorMessage);
       onChatAction(query, errorMessage, []);
     } finally {
+      console.log("[Chat] Done handling query");
       setLoading(false);
     }
   }
@@ -261,9 +272,10 @@ function renderConversationContent(text: string) {
         customQuery={customQuery}
         onQueryChange={(value) => setCustomQuery(value)}
         onSend={processQuery}
-        canSend={!!customQuery.trim() && !!videoId && !loading && !resumeLoading}
+        canSend={!!customQuery.trim() && !!videoId && !loading && !resumeLoading && !!backendReady}
         loading={loading}
         resumeLoading={!!resumeLoading}
+        backendReady={!!backendReady}
         activeVideoName={activeVideoName}
         uploadStatus={uploadStatus}
         onUploadClick={triggerFileDialog}

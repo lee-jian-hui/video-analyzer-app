@@ -9,6 +9,7 @@ interface LiveChatProps {
   canSend: boolean;
   loading: boolean;
   resumeLoading?: boolean;
+  backendReady?: boolean;
   activeVideoName?: string;
   uploadStatus: string;
   onUploadClick: () => void;
@@ -27,6 +28,7 @@ export function LiveChat({
   canSend,
   loading,
   resumeLoading,
+  backendReady,
   activeVideoName,
   uploadStatus,
   onUploadClick,
@@ -67,7 +69,11 @@ export function LiveChat({
       >
         {conversation.length === 0 && (
           <p style={{ color: "#6c757d" }}>
-            {resumeLoading ? "Loading previous session summary…" : "No conversation yet. Send a prompt to get started."}
+            {!backendReady
+              ? "Backend warming up…"
+              : resumeLoading
+              ? "Loading previous session summary…"
+              : "No conversation yet. Send a prompt to get started."}
           </p>
         )}
         {conversation
@@ -126,7 +132,7 @@ export function LiveChat({
             </div>
           </div>
         )}
-        {resumeLoading && !loading && (
+        {(resumeLoading || !backendReady) && !loading && (
           <div style={{ display: "flex", justifyContent: "flex-start" }}>
             <div
               style={{
@@ -137,7 +143,7 @@ export function LiveChat({
                 fontStyle: "italic"
               }}
             >
-              Loading previous session summary…
+              {!backendReady ? "Backend warming up…" : "Loading previous session summary…"}
             </div>
           </div>
         )}
@@ -148,6 +154,7 @@ export function LiveChat({
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
           <button
             onClick={onUploadClick}
+            disabled={!backendReady}
             style={{
               display: "flex",
               alignItems: "center",
@@ -155,10 +162,10 @@ export function LiveChat({
               borderRadius: "999px",
               border: "1px solid #0d6efd",
               padding: "0.4rem 0.95rem",
-              background: "#e7f0ff",
-              color: "#0d6efd",
+              background: backendReady ? "#e7f0ff" : "#f8f9fa",
+              color: backendReady ? "#0d6efd" : "#6c757d",
               fontWeight: 600,
-              cursor: "pointer"
+              cursor: backendReady ? "pointer" : "not-allowed"
             }}
             title="Upload MP4"
           >
@@ -191,52 +198,52 @@ export function LiveChat({
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
           <button
             onClick={() => onQuickAction("Transcribe the entire video and provide the full transcript.")}
-            disabled={!videoId || loading || !!resumeLoading}
+            disabled={!videoId || loading || !!resumeLoading || !backendReady}
             style={{
               padding: "0.4rem 0.95rem",
               borderRadius: "8px",
               border: "1px solid #dee2e6",
-              background: videoId && !loading && !resumeLoading ? "#fff" : "#f8f9fa",
-              cursor: videoId && !loading && !resumeLoading ? "pointer" : "not-allowed"
+              background: videoId && !loading && !resumeLoading && backendReady ? "#fff" : "#f8f9fa",
+              cursor: videoId && !loading && !resumeLoading && backendReady ? "pointer" : "not-allowed"
             }}
           >
             📝 Transcribe
           </button>
           <button
             onClick={() => onQuickAction("Summarize the key points and main themes of this video.")}
-            disabled={!videoId || loading || !!resumeLoading}
+            disabled={!videoId || loading || !!resumeLoading || !backendReady}
             style={{
               padding: "0.4rem 0.95rem",
               borderRadius: "8px",
               border: "1px solid #dee2e6",
-              background: videoId && !loading && !resumeLoading ? "#fff" : "#f8f9fa",
-              cursor: videoId && !loading && !resumeLoading ? "pointer" : "not-allowed"
+              background: videoId && !loading && !resumeLoading && backendReady ? "#fff" : "#f8f9fa",
+              cursor: videoId && !loading && !resumeLoading && backendReady ? "pointer" : "not-allowed"
             }}
           >
             📋 Summarize
           </button>
           <button
             onClick={() => onQuickAction("Detect all obejcts in the video")}
-            disabled={!videoId || loading || !!resumeLoading}
+            disabled={!videoId || loading || !!resumeLoading || !backendReady}
             style={{
               padding: "0.4rem 0.95rem",
               borderRadius: "8px",
               border: "1px solid #dee2e6",
-              background: videoId && !loading && !resumeLoading ? "#fff" : "#f8f9fa",
-              cursor: videoId && !loading && !resumeLoading ? "pointer" : "not-allowed"
+              background: videoId && !loading && !resumeLoading && backendReady ? "#fff" : "#f8f9fa",
+              cursor: videoId && !loading && !resumeLoading && backendReady ? "pointer" : "not-allowed"
             }}
           >
             🔍 Analyze Objects
           </button>
           <button
             onClick={() => onQuickAction("Generate a PDF Report of the video")}
-            disabled={!videoId || loading || !!resumeLoading}
+            disabled={!videoId || loading || !!resumeLoading || !backendReady}
             style={{
               padding: "0.4rem 0.95rem",
               borderRadius: "8px",
               border: "1px solid #dee2e6",
-              background: videoId && !loading && !resumeLoading ? "#fff" : "#f8f9fa",
-              cursor: videoId && !loading && !resumeLoading ? "pointer" : "not-allowed"
+              background: videoId && !loading && !resumeLoading && backendReady ? "#fff" : "#f8f9fa",
+              cursor: videoId && !loading && !resumeLoading && backendReady ? "pointer" : "not-allowed"
             }}
           >
             📊 PDF Report
@@ -288,7 +295,7 @@ export function LiveChat({
             background: "transparent",
             minHeight: "96px"
           }}
-          disabled={loading || !!resumeLoading}
+          disabled={loading || !!resumeLoading || !backendReady}
         />
         <button
           onClick={onSend}

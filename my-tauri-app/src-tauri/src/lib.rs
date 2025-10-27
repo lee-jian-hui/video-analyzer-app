@@ -18,6 +18,7 @@ use video_analyzer::{
 
 async fn connect_client() -> Result<VideoAnalyzerServiceClient<Channel>, String> {
     let server_url = GrpcConfig::server_url();
+    debug!("Connecting to gRPC server at {}", server_url);
     VideoAnalyzerServiceClient::connect(server_url.clone())
         .await
         .map_err(|e| format!("Failed to connect to gRPC server at {}: {}", server_url, e))
@@ -94,7 +95,13 @@ async fn upload_video(filename: String, video_data: Vec<u8>) -> Result<Value, St
         .await
         .map_err(|e| format!("gRPC call failed: {}", e))?;
 
-    serde_json::to_value(response.into_inner())
+    let inner = response.into_inner();
+    debug!(
+        "upload_video response: success={}, file_id={}",
+        inner.success,
+        inner.file_id
+    );
+    serde_json::to_value(inner)
         .map_err(|e| format!("Failed to serialize response: {}", e))
 }
 
@@ -156,7 +163,12 @@ async fn get_last_session() -> Result<Value, String> {
         .await
         .map_err(|e| format!("gRPC call failed: {}", e))?;
 
-    serde_json::to_value(response.into_inner())
+    let inner = response.into_inner();
+    debug!(
+        "get_last_session response: has_session={}, video_id={:?}, video_name={:?}",
+        inner.has_session, inner.video_id, inner.video_name
+    );
+    serde_json::to_value(inner)
         .map_err(|e| format!("Failed to serialize response: {}", e))
 }
 
@@ -181,8 +193,36 @@ async fn get_chat_history(
         .await
         .map_err(|e| format!("gRPC call failed: {}", e))?;
 
-    serde_json::to_value(response.into_inner())
-        .map_err(|e| format!("Failed to serialize response: {}", e))
+    let inner = response.into_inner();
+    let summary_len = inner.conversation_summary.len();
+    let msgs_len = inner.recent_messages.len();
+    debug!(
+        "get_chat_history response: video_id={:?}, summary_len={}, recent_messages_len={}",
+        inner.video_id, summary_len, msgs_len
+    );
+
+    // Manually shape the JSON to avoid any serde/prost mismatch issues
+    let recent_msgs: Vec<Value> = inner
+        .recent_messages
+        .into_iter()
+        .map(|m| serde_json::json!({
+            "role": m.role,
+            "content": m.content,
+            "timestamp": m.timestamp,
+        }))
+        .collect();
+
+    let shaped = serde_json::json!({
+        "video_id": inner.video_id,
+        "video_name": inner.video_name,
+        "conversation_summary": inner.conversation_summary,
+        "recent_messages": recent_msgs,
+        "total_messages": inner.total_messages,
+        "created_at": inner.created_at,
+        "updated_at": inner.updated_at,
+    });
+
+    Ok(shaped)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -197,8 +237,27 @@ async fn clear_chat_history(video_id: String) -> Result<Value, String> {
         .await
         .map_err(|e| format!("gRPC call failed: {}", e))?;
 
-    serde_json::to_value(response.into_inner())
+    let inner = response.into_inner();
+    debug!("clear_chat_history response: success={}, message={}", inner.success, inner.message);
+    serde_json::to_value(inner)
         .map_err(|e| format!("Failed to serialize response: {}", e))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn check_backend_ready() -> Result<Value, String> {
+    use tokio::time::{timeout, Duration};
+    debug!("check_backend_ready: attempting ping via get_last_session");
+    let mut client = match connect_client().await {
+        Ok(c) => c,
+        Err(e) => return Ok(serde_json::json!({ "ready": false, "message": e })),
+    };
+
+    let req = Request::new(Empty {});
+    match timeout(Duration::from_secs(3), client.get_last_session(req)).await {
+        Ok(Ok(_)) => Ok(serde_json::json!({ "ready": true })),
+        Ok(Err(e)) => Ok(serde_json::json!({ "ready": false, "message": e.to_string() })),
+        Err(_) => Ok(serde_json::json!({ "ready": false, "message": "timeout" })),
+    }
 }
 
 // Legacy endpoint for backward compatibility (deprecated)
@@ -240,7 +299,8 @@ pub fn run() {
             get_last_session,
             get_chat_history,
             clear_chat_history,
-            get_processing_status  // Legacy, kept for backward compatibility
+            get_processing_status, // Legacy, kept for backward compatibility
+            check_backend_ready
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

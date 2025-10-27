@@ -35,6 +35,7 @@ function App() {
   const [historyError, setHistoryError] = useState("");
   const [initialAssistantMessage, setInitialAssistantMessage] = useState<string | null>(null);
   const [resumeLoading, setResumeLoading] = useState(false);
+  const [backendReady, setBackendReady] = useState(false);
 
   useEffect(() => {
     // Restore action history from localStorage
@@ -80,10 +81,54 @@ function App() {
     refreshChatHistory();
   }, []);
 
+  // Poll backend readiness (simple ping via get_last_session)
+  useEffect(() => {
+    let cancelled = false;
+    async function pollReadiness() {
+      console.log("[Ready] Polling backend readiness...");
+      const start = Date.now();
+      let attempts = 0;
+      while (!cancelled && attempts < 30) {
+        try {
+          const resp = await invoke("check_backend_ready");
+          const res = resp as { ready?: boolean; message?: string };
+          console.log("[Ready] check_backend_ready:", res);
+          if (res.ready) {
+            setBackendReady(true);
+            return;
+          }
+        } catch (e) {
+          console.warn("[Ready] readiness check error:", e);
+        }
+        attempts += 1;
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+      if (!cancelled) {
+        setBackendReady(false);
+        const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+        console.warn(`[Ready] Backend not ready after ${elapsed}s`);
+      }
+    }
+    pollReadiness();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Prompt user to optionally continue from last session and seed chat
+  // Runs once after backend becomes ready
+  const [resumeChecked, setResumeChecked] = useState(false);
   useEffect(() => {
     async function maybeResumeLastSession() {
       try {
+        if (!backendReady) {
+          console.log("[Resume] Backend not ready yet; deferring last session check");
+          return;
+        }
+        if (resumeChecked) {
+          return;
+        }
+        console.log("[Resume] Checking last session (backend ready)…");
         const resp = await invoke("get_last_session");
         const last = resp as {
           has_session?: boolean;
@@ -91,7 +136,12 @@ function App() {
           video_name?: string;
         };
 
-        if (!last?.has_session) return;
+        console.log("[Resume] get_last_session response:", last);
+        if (!last?.has_session) {
+          console.log("[Resume] No previous session found.");
+          setResumeChecked(true);
+          return;
+        }
         if (typeof window === "undefined") return;
 
         const name = last.video_name ?? "previous video";
@@ -104,6 +154,7 @@ function App() {
           setCurrentVideo({ id: last.video_id, name: last.video_name ?? "Untitled" });
           try {
             setResumeLoading(true);
+            console.log("[Resume] Fetching chat history for:", last.video_id);
             const historyResp = await invoke("get_chat_history", {
               video_id: last.video_id,
               include_full_messages: false,
@@ -113,8 +164,11 @@ function App() {
               recent_messages?: { role?: string; content?: string }[];
             };
 
+            console.log("[Resume] get_chat_history response:", history);
             if (history?.conversation_summary && history.conversation_summary.trim()) {
-              setInitialAssistantMessage(history.conversation_summary.trim());
+              const msg = history.conversation_summary.trim();
+              console.log("[Resume] Using conversation_summary (len=", msg.length, ")");
+              setInitialAssistantMessage(msg);
             } else if (history?.recent_messages && history.recent_messages.length > 0) {
               const recap = history.recent_messages
                 .slice(-6)
@@ -124,8 +178,10 @@ function App() {
               const fallback = recap
                 ? `Here’s a quick recap from your last session:\n${recap}`
                 : "Resuming your last session. No summary available, but you can continue chatting.";
+              console.log("[Resume] Using recent_messages recap, chars:", fallback.length);
               setInitialAssistantMessage(fallback);
             } else {
+              console.log("[Resume] No summary or recent messages. Using default resume notice.");
               setInitialAssistantMessage(
                 "Resuming your last session. No prior summary was found; feel free to continue."
               );
@@ -133,24 +189,31 @@ function App() {
           } catch (err) {
             console.error("Failed to fetch summarized chat history:", err);
           } finally {
+            console.log("[Resume] Done fetching chat history.");
             setResumeLoading(false);
+            setResumeChecked(true);
           }
         } else if (!shouldContinue && last.video_id) {
           // Clear server-side chat history and start fresh
           try {
+            console.log("[Resume] Clearing chat history for:", last.video_id);
             await invoke("clear_chat_history", { video_id: last.video_id });
           } catch (err) {
             console.error("Failed to clear chat history:", err);
+          } finally {
+            setResumeChecked(true);
           }
         }
       } catch (error) {
         console.error("Failed to check last session:", error);
+        setResumeChecked(true);
       }
     }
 
-    maybeResumeLastSession();
-    // Only run on first mount
-  }, []);
+    if (backendReady && !resumeChecked) {
+      maybeResumeLastSession();
+    }
+  }, [backendReady, resumeChecked]);
 
   async function refreshChatHistory(limit = historyConfig.limit) {
     setHistoryStatus("loading");
@@ -248,6 +311,8 @@ function App() {
           onVideoUploaded={handleUploadComplete}
           onChatAction={handleChatAction}
           initialAssistantMessage={initialAssistantMessage ?? undefined}
+          resumeLoading={resumeLoading}
+          backendReady={backendReady}
         />
 
         {/* <ChatResultsPanel
