@@ -1,0 +1,36 @@
+[project]
+name = "langgraph-learning"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "accelerate>=1.11.0",
+    "bitsandbytes>=0.48.1",
+    "graphviz>=0.21",
+    "grpcio>=1.76.0",
+    "grpcio-tools>=1.76.0",
+    "ipython>=8.37.0",
+    "langchain>=1.0.2",
+    "langchain-community>=0.4",
+    "langchain-core>=1.0.1",
+    "langchain-google-genai>=3.0.0",
+    "langchain-huggingface>=1.0.0",
+    "langchain-ollama>=1.0.0",
+    "langgraph>=1.0.1",
+    "litellm>=1.79.0",
+    "mcp>=1.19.0",
+    "moviepy>=1.0.3",
+    "reportlab>=3.6.12",
+    "ollama>=0.6.0",
+    "openai-whisper>=20250625",
+    "opencv-python>=4.11.0.86",
+    "pillow>=12.0.0",
+    "pytesseract>=0.3.13",
+    "python-dotenv>=1.1.1",
+    "qwen-agent[code-interpreter]>=0.0.31",
+    "torch>=2.9.0",
+    "torchvision>=0.24.0",
+    "transformers>=4.57.1",
+    "ultralytics>=8.3.221",
+]

@@ -1,0 +1,8 @@
+- PDF report generation based on:
+  - we should let the LLM plan the execution plan to generate the report summary on what agents and tools to use
+  - draft a prompt tempalte that makes sense for what kind of report the user expects to see, draft a simple one should include things like:
+    - brief summary of the chat history thus far
+    - multiple dedicated sections for: 
+      - theme of the video, 
+      - what entities are detected in the video, 
+      - summary of the video, etc.
