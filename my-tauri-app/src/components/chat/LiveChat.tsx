@@ -241,7 +241,7 @@ export function LiveChat({
             📝 Transcribe
           </button>
           <button
-            onClick={() => onQuickAction("Summarize the key points and main themes of this video.")}
+            onClick={() => onQuickAction("“Summarize our discussion so far")}
             disabled={!videoId || loading || !!resumeLoading || !backendReady}
             style={{
               padding: "0.4rem 0.95rem",

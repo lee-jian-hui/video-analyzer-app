@@ -88,8 +88,31 @@ async fn upload_video(filename: String, video_data: Vec<u8>) -> Result<Value, St
     println!("🦀 Rust: upload_video called with {}", filename);
     println!("🦀 Rust: video_data size: {}", video_data.len());
 
-    let chunks = build_video_chunks(&filename, video_data);
-    let request_stream = iter(chunks);
+    // Stream chunks via channel to avoid allocating all chunks upfront
+    let chunk_size = GrpcConfig::video_chunk_size();
+    let (tx, rx) = tokio::sync::mpsc::channel::<VideoChunk>(8);
+
+    let fname = filename.clone();
+    tokio::spawn(async move {
+        let mut idx: i32 = 0;
+        let mut offset: usize = 0;
+        while offset < video_data.len() {
+            let end = (offset + chunk_size).min(video_data.len());
+            let slice = &video_data[offset..end];
+            let chunk = VideoChunk {
+                data: slice.to_vec(),
+                filename: fname.clone(),
+                chunk_index: idx,
+            };
+            offset = end;
+            idx += 1;
+            if tx.send(chunk).await.is_err() {
+                break;
+            }
+        }
+    });
+
+    let request_stream = tokio_stream::wrappers::ReceiverStream::new(rx);
 
     let mut client = connect_client().await?;
     let response = client

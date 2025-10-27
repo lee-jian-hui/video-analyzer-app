@@ -12,13 +12,14 @@ interface ChatComponentProps {
   initialConversation?: ConversationEntry[];
   resumeLoading?: boolean;
   backendReady?: boolean;
+  onClearActiveVideo?: () => void;
 }
 
 const DEFAULT_RESULT_COPY =
   "Run a query to see the assistant response. Streaming chunks will be rendered here.";
 const MAX_INLINE_CHARS = 400;
 
-export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onChatAction, initialAssistantMessage, initialConversation, resumeLoading, backendReady }: ChatComponentProps) {
+export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onChatAction, initialAssistantMessage, initialConversation, resumeLoading, backendReady, onClearActiveVideo }: ChatComponentProps) {
   const [customQuery, setCustomQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
@@ -105,11 +106,12 @@ export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onCha
     setUploadStatus("Uploading (slow path)...");
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const videoData = Array.from(new Uint8Array(arrayBuffer));
+      // Send a Uint8Array directly to Tauri (avoids huge Array<number> copy)
+      const videoData = new Uint8Array(arrayBuffer);
 
       const response = await invoke("upload_video", {
         filename: file.name,
-        video_data: videoData
+        video_data: videoData,
       });
 
       const result = response as { file_id?: string; fileId?: string; success: boolean; message?: string };
@@ -194,6 +196,8 @@ export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onCha
       console.log("[Chat] Clearing server chat history for:", videoId);
       await invoke("clear_chat_history", { video_id: videoId });
       setConversation([]);
+      // Optionally clear the active video in the parent so it doesn't persist across restarts
+      onClearActiveVideo?.();
     } catch (err) {
       console.error("Failed to clear chat history:", err);
     } finally {

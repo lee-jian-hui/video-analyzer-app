@@ -1,71 +1,32 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import "./App.css";
 import { ChatComponent } from "./components/ChatComponent";
-import { ActionHistoryPanel, ActionEntry } from "./components/ActionHistoryPanel";
-import { ChatResultsPanel } from "./components/chat/ChatResultsPanel";
-import { ChatHistoryPanel } from "./components/chat/ChatHistoryPanel";
-import type { ChatResponseItem, ChatMessage, ConversationEntry } from "./components/chat/types";
+import type { ConversationEntry } from "./components/chat/types";
 import { appLayoutConfig, isFullscreenViewport, historyConfig } from "./configs";
 import { invoke } from "@tauri-apps/api/core";
-import { storageManager, StorageKey } from "./utils/localStorageManager";
+// Removed localStorage persistence; backend is the source of truth
 
-const MAX_ACTIONS = 40;
 const DEFAULT_RESULT_COPY = "Run a query to see the assistant response. Streaming chunks will be rendered here.";
-const RESPONSE_LABELS: Record<number, string> = {
-  0: "Message",
-  1: "Progress",
-  2: "Result",
-  3: "Error"
-};
 
 function App() {
   const [currentVideo, setCurrentVideo] = useState<{ id: string; name: string } | null>(null);
-  const [actionHistory, setActionHistory] = useState<ActionEntry[]>([]);
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth : appLayoutConfig.defaultWidth
   );
 
   // Chat results state
-  const [resultSummary, setResultSummary] = useState(DEFAULT_RESULT_COPY);
-  const [chatStream, setChatStream] = useState<ChatResponseItem[]>([]);
+  // Results panel removed; keep minimal state only if needed later
 
   // Chat history state
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  const [historyStatus, setHistoryStatus] = useState<"idle" | "loading" | "error">("idle");
-  const [historyError, setHistoryError] = useState("");
+  // History panel removed
   const [initialAssistantMessage, setInitialAssistantMessage] = useState<string | null>(null);
   const [resumeLoading, setResumeLoading] = useState(false);
   const [backendReady, setBackendReady] = useState(false);
   const [initialConversation, setInitialConversation] = useState<ConversationEntry[] | undefined>(undefined);
 
-  useEffect(() => {
-    // Restore action history from localStorage
-    const storedHistory = storageManager.get(StorageKey.ACTION_HISTORY, []);
-    setActionHistory(storedHistory);
+  // No local persistence or action history
 
-    // Restore last video from localStorage
-    const storedVideo = storageManager.get(StorageKey.LAST_VIDEO, null);
-    if (storedVideo?.id && storedVideo?.name) {
-      setCurrentVideo(storedVideo);
-    }
-
-    // Print debug summary in development
-    if (import.meta.env.DEV) {
-      storageManager.debugPrintSummary();
-    }
-  }, []);
-
-  useEffect(() => {
-    if (currentVideo?.id && currentVideo?.name) {
-      storageManager.set(StorageKey.LAST_VIDEO, {
-        id: currentVideo.id,
-        name: currentVideo.name,
-        uploadedAt: Date.now()
-      });
-    } else {
-      storageManager.remove(StorageKey.LAST_VIDEO);
-    }
-  }, [currentVideo]);
+  // Do not persist active video locally; derive it from backend last session instead
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -74,13 +35,9 @@ function App() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  useEffect(() => {
-    storageManager.set(StorageKey.ACTION_HISTORY, actionHistory);
-  }, [actionHistory]);
+  // No local persistence for action history
 
-  useEffect(() => {
-    refreshChatHistory();
-  }, []);
+  // No history panel refresh
 
   // Poll backend readiness (simple ping via get_last_session)
   useEffect(() => {
@@ -145,76 +102,85 @@ function App() {
         }
         if (typeof window === "undefined") return;
 
-        const name = last.video_name ?? "previous video";
-        const shouldContinue = window.confirm(
-          `Continue from previous session with \"${name}\"?\nClick OK to resume, or Cancel to start fresh.`
-        );
+        // Prefetch minimal history to decide whether to prompt at all
+        if (!last.video_id) {
+          setResumeChecked(true);
+          return;
+        }
 
-        if (shouldContinue && last.video_id) {
-          // Set the active video and fetch summarized history
-          setCurrentVideo({ id: last.video_id, name: last.video_name ?? "Untitled" });
+        try {
+          setResumeLoading(true);
+          console.log("[Resume] Prefetching chat history to decide prompt for:", last.video_id);
+          // Ensure backend restores the previous session context first
           try {
-            setResumeLoading(true);
-            console.log("[Resume] Fetching chat history for:", last.video_id);
-            // Ensure backend restores the previous session context first
-            try {
-              const resumeResp = await invoke("resume_session", { video_id: last.video_id });
-              console.log("[Resume] resume_session response:", resumeResp);
-            } catch (resumeErr) {
-              console.warn("[Resume] resume_session failed (continuing anyway):", resumeErr);
-            }
-            const includeFull = !historyConfig.resumeUseSummary;
-            const historyResp = await invoke("get_chat_history", {
-              video_id: last.video_id,
-              include_full_messages: includeFull,
-            });
-            const history = historyResp as {
-              conversation_summary?: string;
-              recent_messages?: { role?: string; content?: string }[];
-            };
+            const resumeResp = await invoke("resume_session", { video_id: last.video_id });
+            console.log("[Resume] resume_session response:", resumeResp);
+          } catch (resumeErr) {
+            console.warn("[Resume] resume_session failed (continuing anyway):", resumeErr);
+          }
 
-            console.log("[Resume] get_chat_history response:", history);
-            if (historyConfig.resumeUseSummary && history?.conversation_summary && history.conversation_summary.trim()) {
-              const msg = history.conversation_summary.trim();
-              console.log("[Resume] Using conversation_summary (len=", msg.length, ")");
+          const includeFullForDecision = true; // fetch recent messages to check if any exist
+          const histResp = await invoke("get_chat_history", {
+            video_id: last.video_id,
+            include_full_messages: includeFullForDecision,
+          });
+          const preHistory = histResp as {
+            conversation_summary?: string;
+            recent_messages?: { role?: string; content?: string }[];
+          };
+
+          const hasSummary = !!preHistory?.conversation_summary && preHistory.conversation_summary.trim().length > 0;
+          const hasMessages = !!preHistory?.recent_messages && preHistory.recent_messages.length > 0;
+
+          if (!hasSummary && !hasMessages) {
+            console.log("[Resume] No prior summary or messages. Skipping resume prompt.");
+            setResumeChecked(true);
+            setResumeLoading(false);
+            return;
+          }
+
+          const name = last.video_name ?? "previous video";
+          const shouldContinue = window.confirm(
+            `Continue from previous session with \"${name}\"?\nClick OK to resume, or Cancel to start fresh.`
+          );
+
+          if (shouldContinue) {
+            // Set active video and seed using the pre-fetched history according to config
+            setCurrentVideo({ id: last.video_id, name: last.video_name ?? "Untitled" });
+
+            if (historyConfig.resumeUseSummary && hasSummary) {
+              const msg = preHistory.conversation_summary!.trim();
               setInitialAssistantMessage(msg);
               setInitialConversation(undefined);
-            } else if (history?.recent_messages && history.recent_messages.length > 0) {
-              // Map recent_messages to conversation bubbles
-              const entries: ConversationEntry[] = history.recent_messages
+            } else if (hasMessages && preHistory.recent_messages) {
+              const entries: ConversationEntry[] = preHistory.recent_messages
                 .map((m, i) => ({
                   id: `resume-${Date.now()}-${i}`,
                   role: (m.role === 'user' ? 'user' : 'assistant') as const,
                   content: (m.content ?? '').trim(),
                 }))
                 .filter((e) => e.content.length > 0);
-              console.log("[Resume] Using full recent_messages as conversation, count:", entries.length);
               setInitialAssistantMessage(null);
               setInitialConversation(entries);
-            } else {
-              console.log("[Resume] No summary or recent messages. Using default resume notice.");
-              setInitialAssistantMessage(
-                "Resuming your last session. No prior summary was found; feel free to continue."
-              );
-              setInitialConversation(undefined);
             }
-          } catch (err) {
-            console.error("Failed to fetch summarized chat history:", err);
-          } finally {
-            console.log("[Resume] Done fetching chat history.");
-            setResumeLoading(false);
             setResumeChecked(true);
+          } else {
+            // User opted out; clear server-side history and start fresh
+            try {
+              console.log("[Resume] Clearing chat history for:", last.video_id);
+              await invoke("clear_chat_history", { video_id: last.video_id });
+            } catch (err) {
+              console.error("Failed to clear chat history:", err);
+            } finally {
+              // Also clear local active video so it doesn't persist on restart
+              setCurrentVideo(null);
+              setInitialAssistantMessage(null);
+              setInitialConversation(undefined);
+              setResumeChecked(true);
+            }
           }
-        } else if (!shouldContinue && last.video_id) {
-          // Clear server-side chat history and start fresh
-          try {
-            console.log("[Resume] Clearing chat history for:", last.video_id);
-            await invoke("clear_chat_history", { video_id: last.video_id });
-          } catch (err) {
-            console.error("Failed to clear chat history:", err);
-          } finally {
-            setResumeChecked(true);
-          }
+        } finally {
+          setResumeLoading(false);
         }
       } catch (error) {
         console.error("Failed to check last session:", error);
@@ -227,73 +193,25 @@ function App() {
     }
   }, [backendReady, resumeChecked]);
 
-  async function refreshChatHistory(limit = historyConfig.limit) {
-    setHistoryStatus("loading");
-    setHistoryError("");
-    try {
-      const response = await invoke("get_processing_status", { limit });
-      const parsed = response as { messages?: ChatMessage[] };
-      setChatHistory(parsed.messages ?? []);
-      setHistoryStatus("idle");
-    } catch (error) {
-      setHistoryStatus("error");
-      setHistoryError(String(error));
-    }
-  }
-
-  function formatHistoryTimestamp(ts?: number) {
-    if (!ts) return "";
-    return new Date(ts * 1000).toLocaleString();
-  }
-
-  function formatChunk(chunk: ChatResponseItem) {
-    const label = RESPONSE_LABELS[chunk.type] ?? `Type ${chunk.type}`;
-    const agent = chunk.agent_name ? ` · ${chunk.agent_name}` : "";
-    return `${label}${agent}`;
-  }
-
-  function pushAction(entry: Omit<ActionEntry, "id" | "timestamp">) {
-    const newEntry: ActionEntry = {
-      ...entry,
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      timestamp: Date.now()
-    };
-    setActionHistory((prev) => [newEntry, ...prev].slice(0, MAX_ACTIONS));
-  }
+  // Removed history/results helpers
 
   function handleUploadComplete(videoId: string, filename: string) {
     const nextVideo = { id: videoId, name: filename };
     setCurrentVideo(nextVideo);
-    pushAction({
-      type: "upload",
-      title: "Uploaded video",
-      subtitle: filename,
-      videoId,
-      videoName: filename
-    });
   }
 
-  function handleChatAction(query: string, summary: string, stream: ChatResponseItem[]) {
-    pushAction({
-      type: "chat",
-      title: "Chat prompt sent",
-      subtitle: `${query}\n---\n${summary}`,
-      videoId: currentVideo?.id,
-      videoName: currentVideo?.name
-    });
-
-    // Update results panel
-    setResultSummary(summary);
-    setChatStream(stream);
-
-    // Refresh chat history
-    refreshChatHistory();
+  function handleClearActiveVideo() {
+    console.log("[App] Clearing active video selection");
+    setCurrentVideo(null);
+    setInitialAssistantMessage(null);
+    setInitialConversation(undefined);
   }
 
-  function clearHistory() {
-    setActionHistory([]);
-    storageManager.remove(StorageKey.ACTION_HISTORY);
+  function handleChatAction(_query?: unknown, _summary?: unknown, _stream?: unknown) {
+    // Results/action history panels removed; no-op hook for now
   }
+
+  // Action history removed
 
   const fullscreen = isFullscreenViewport(viewportWidth);
   const containerStyle: CSSProperties = {
@@ -338,6 +256,7 @@ function App() {
           initialConversation={initialConversation}
           resumeLoading={resumeLoading}
           backendReady={backendReady}
+          onClearActiveVideo={handleClearActiveVideo}
         />
 
         {/* <ChatResultsPanel
