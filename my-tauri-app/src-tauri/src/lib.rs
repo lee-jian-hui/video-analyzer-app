@@ -3,7 +3,7 @@ use tokio_stream::iter;
 use tokio::io::AsyncReadExt;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Channel, Request};
-use log::{info, debug, warn, error};
+use log::{debug, warn};
 
 mod config;
 use config::{AppConfig, GrpcConfig};
@@ -15,7 +15,7 @@ pub mod video_analyzer {
 use video_analyzer::{
     video_analyzer_service_client::VideoAnalyzerServiceClient,
     ChatRequest, ChatResponse, ClearHistoryRequest, Empty, GetHistoryRequest,
-    RegisterVideoRequest, VideoChunk,
+    RegisterVideoRequest, VideoChunk, ResumeRequest,
 };
 
 async fn connect_client() -> Result<VideoAnalyzerServiceClient<Channel>, String> {
@@ -292,6 +292,27 @@ async fn get_chat_history(
 }
 
 #[tauri::command(rename_all = "snake_case")]
+async fn resume_session(video_id: String) -> Result<Value, String> {
+    println!("🦀 Rust: resume_session called for video_id: {}", video_id);
+
+    let request = ResumeRequest { video_id };
+
+    let mut client = connect_client().await?;
+    let response = client
+        .resume_session(Request::new(request))
+        .await
+        .map_err(|e| format!("gRPC call failed: {}", e))?;
+
+    let inner = response.into_inner();
+    debug!(
+        "resume_session response: success={}, video_id={:?}, video_name={:?}",
+        inner.success, inner.video_id, inner.video_name
+    );
+    serde_json::to_value(inner)
+        .map_err(|e| format!("Failed to serialize response: {}", e))
+}
+
+#[tauri::command(rename_all = "snake_case")]
 async fn clear_chat_history(video_id: String) -> Result<Value, String> {
     println!("🦀 Rust: clear_chat_history called for video_id: {}", video_id);
 
@@ -365,6 +386,7 @@ pub fn run() {
             process_query,
             get_last_session,
             get_chat_history,
+            resume_session,
             clear_chat_history,
             get_processing_status, // Legacy, kept for backward compatibility
             check_backend_ready

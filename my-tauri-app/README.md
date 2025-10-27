@@ -95,6 +95,10 @@ cp src-tauri/.env.example src-tauri/.env
 
 # 3. Start development server
 npm run tauri dev
+
+# Try this if intermittment failures
+# WEBKIT_DISABLE_DMABUF_RENDERER=1 GDK_BACKEND=x11 WINIT_UNIX_BACKEND=x11 npm run tauri dev
+
 ```
 
 **Note**: Ensure your Python gRPC backend is running on `http://127.0.0.1:50051` (or update `GRPC_SERVER_URL`)

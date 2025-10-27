@@ -1,4 +1,5 @@
 import type { ConversationEntry } from "./types";
+import { useEffect, useRef } from "react";
 
 interface LiveChatProps {
   conversation: ConversationEntry[];
@@ -37,6 +38,9 @@ export function LiveChat({
   onClearChat,
   clearing
 }: LiveChatProps) {
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const endRef = useRef<HTMLDivElement | null>(null);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -45,16 +49,39 @@ export function LiveChat({
       }
     }
   };
+  // Auto-scroll to the latest message when conversation updates or resume completes
+  useEffect(() => {
+    // Allow the DOM to paint before scrolling
+    const id = requestAnimationFrame(() => {
+      endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [conversation.length]);
+
+  useEffect(() => {
+    if (!resumeLoading && conversation.length > 0) {
+      const id = requestAnimationFrame(() => {
+        endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      });
+      return () => cancelAnimationFrame(id);
+    }
+  }, [resumeLoading]);
+
   return (
     <div
       style={{
         marginTop: "1.25rem",
-        background: "#fff",
+        background: "var(--panel-bg)",
         borderRadius: "16px",
-        border: "1px solid #e9ecef",
+        border: "1px solid var(--panel-border)",
         padding: "1rem",
         width: "100%",
-        boxSizing: "border-box"
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        boxSizing: "border-box",
+        boxShadow: "0 10px 30px rgba(15, 23, 42, 0.05)"
       }}
     >
       <h3 style={{ marginBottom: "0.75rem" }}>💬 Live Chat</h3>
@@ -63,16 +90,18 @@ export function LiveChat({
           display: "flex",
           flexDirection: "column",
           gap: "0.75rem",
-          maxHeight: "350px",
+          flex: 1,
+          minHeight: 0,
           overflowY: "auto"
         }}
+        ref={listRef}
       >
         {conversation.length === 0 && (
-          <p style={{ color: "#6c757d" }}>
+          <p style={{ color: "var(--muted)" }}>
             {!backendReady
               ? "Backend warming up…"
               : resumeLoading
-              ? "Loading previous session summary…"
+              ? "Loading previous session ..."
               : "No conversation yet. Send a prompt to get started."}
           </p>
         )}
@@ -94,12 +123,13 @@ export function LiveChat({
                     maxWidth: "100%",
                     padding: "0.85rem 1rem",
                     borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-                    background: isUser ? "#dbe7ff" : "#f2f4f7",
-                    color: "#1f1f1f",
+                    background: isUser ? "var(--bubble-user)" : "var(--bubble-assistant)",
+                    color: "var(--text)",
                     textAlign: "left",
-                    boxShadow: "0 2px 6px rgba(15, 23, 42, 0.08)",
+                    boxShadow: "0 2px 6px rgba(15, 23, 42, 0.06)",
                     wordBreak: "break-word",
-                    boxSizing: "border-box"
+                    boxSizing: "border-box",
+                    border: "1px solid var(--panel-border)"
                   }}
                 >
                   <div
@@ -107,7 +137,7 @@ export function LiveChat({
                       fontSize: "0.85rem",
                       fontWeight: 600,
                       marginBottom: "0.35rem",
-                      color: "#6c757d"
+                      color: "var(--muted)"
                     }}
                   >
                     {isUser ? "You" : "Assistant"}
@@ -123,8 +153,8 @@ export function LiveChat({
               style={{
                 padding: "0.85rem 1rem",
                 borderRadius: "18px 18px 18px 4px",
-                background: "#f2f4f7",
-                color: "#6c757d",
+                background: "var(--bubble-assistant)",
+                color: "var(--muted)",
                 fontStyle: "italic"
               }}
             >
@@ -138,15 +168,16 @@ export function LiveChat({
               style={{
                 padding: "0.85rem 1rem",
                 borderRadius: "18px 18px 18px 4px",
-                background: "#f2f4f7",
-                color: "#6c757d",
+                background: "var(--bubble-assistant)",
+                color: "var(--muted)",
                 fontStyle: "italic"
               }}
             >
-              {!backendReady ? "Backend warming up…" : "Loading previous session summary…"}
+              {!backendReady ? "Backend warming up…" : "Loading previous session ..."}
             </div>
           </div>
         )}
+        <div ref={endRef} />
       </div>
 
       {/* Upload Status and Quick Actions */}
@@ -160,10 +191,10 @@ export function LiveChat({
               alignItems: "center",
               gap: "0.4rem",
               borderRadius: "999px",
-              border: "1px solid #0d6efd",
+              border: "1px solid var(--btn-border)",
               padding: "0.4rem 0.95rem",
-              background: backendReady ? "#e7f0ff" : "#f8f9fa",
-              color: backendReady ? "#0d6efd" : "#6c757d",
+              background: backendReady ? "var(--btn-bg)" : "var(--btn-hover)",
+              color: backendReady ? "var(--text)" : "var(--muted)",
               fontWeight: 600,
               cursor: backendReady ? "pointer" : "not-allowed"
             }}
@@ -186,10 +217,10 @@ export function LiveChat({
             Upload File
           </button>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <span style={{ fontWeight: 600, color: activeVideoName ? "#198754" : "#6c757d" }}>
+            <span style={{ fontWeight: 600, color: activeVideoName ? "var(--text)" : "var(--muted)" }}>
               {activeVideoName ? `Active video: ${activeVideoName}` : "No active video"}
             </span>
-            <small style={{ color: "#6c757d" }}>
+            <small style={{ color: "var(--muted)" }}>
               {uploadStatus || "Attach an MP4 and it becomes your chat context"}
             </small>
           </div>
@@ -202,8 +233,8 @@ export function LiveChat({
             style={{
               padding: "0.4rem 0.95rem",
               borderRadius: "8px",
-              border: "1px solid #dee2e6",
-              background: videoId && !loading && !resumeLoading && backendReady ? "#fff" : "#f8f9fa",
+              border: "1px solid var(--btn-border)",
+              background: videoId && !loading && !resumeLoading && backendReady ? "var(--btn-bg)" : "var(--btn-hover)",
               cursor: videoId && !loading && !resumeLoading && backendReady ? "pointer" : "not-allowed"
             }}
           >
@@ -215,8 +246,8 @@ export function LiveChat({
             style={{
               padding: "0.4rem 0.95rem",
               borderRadius: "8px",
-              border: "1px solid #dee2e6",
-              background: videoId && !loading && !resumeLoading && backendReady ? "#fff" : "#f8f9fa",
+              border: "1px solid var(--btn-border)",
+              background: videoId && !loading && !resumeLoading && backendReady ? "var(--btn-bg)" : "var(--btn-hover)",
               cursor: videoId && !loading && !resumeLoading && backendReady ? "pointer" : "not-allowed"
             }}
           >
@@ -228,9 +259,9 @@ export function LiveChat({
             style={{
               padding: "0.4rem 0.95rem",
               borderRadius: "8px",
-              border: "1px solid #dee2e6",
-              background: videoId && !loading && !resumeLoading && backendReady ? "#fff" : "#f8f9fa",
-              cursord && !loading && !resumeLoading && backendReady ? "pointer" : "not-allowed"
+              border: "1px solid var(--btn-border)",
+              background: videoId && !loading && !resumeLoading && backendReady ? "var(--btn-bg)" : "var(--btn-hover)",
+              cursor: videoId && !loading && !resumeLoading && backendReady ? "pointer" : "not-allowed"
             }}
           >
             🔍 Analyze Objects
@@ -241,8 +272,8 @@ export function LiveChat({
             style={{
               padding: "0.4rem 0.95rem",
               borderRadius: "8px",
-              border: "1px solid #dee2e6",
-              background: videoId && !loading && !resumeLoading && backendReady ? "#fff" : "#f8f9fa",
+              border: "1px solid var(--btn-border)",
+              background: videoId && !loading && !resumeLoading && backendReady ? "var(--btn-bg)" : "var(--btn-hover)",
               cursor: videoId && !loading && !resumeLoading && backendReady ? "pointer" : "not-allowed"
             }}
           >
@@ -256,9 +287,9 @@ export function LiveChat({
             style={{
               padding: "0.4rem 0.95rem",
               borderRadius: "8px",
-              border: "1px solid #f1c0c0",
-              background: !videoId || loading || clearing ? "#f8f9fa" : "#fff4f4",
-              color: "#b02a37",
+              border: "1px solid var(--btn-border)",
+              background: !videoId || loading || clearing ? "var(--btn-hover)" : "#fff4f4",
+              color: "var(--danger)",
               cursor: !videoId || loading || clearing ? "not-allowed" : "pointer"
             }}
           >
@@ -275,8 +306,8 @@ export function LiveChat({
           alignItems: "center",
           padding: "0.5rem",
           borderRadius: "12px",
-          border: "1px solid #dee2e6",
-          background: "#fdfdfd"
+          border: "1px solid var(--panel-border)",
+          background: "var(--panel-bg)"
         }}
       >
         <textarea
@@ -293,6 +324,7 @@ export function LiveChat({
             fontSize: "1rem",
             outline: "none",
             background: "transparent",
+            color: "var(--text)",
             minHeight: "96px"
           }}
           disabled={loading || !!resumeLoading || !backendReady}
@@ -303,9 +335,9 @@ export function LiveChat({
           style={{
             padding: "0.75rem 1.5rem",
             borderRadius: "999px",
-            background: canSend ? "#6f42c1" : "#ccc",
-            color: "#fff",
-            border: "none",
+            background: canSend ? "var(--btn-bg)" : "var(--btn-hover)",
+            color: "var(--text)",
+            border: `1px solid var(--btn-border)`,
             cursor: canSend ? "pointer" : "not-allowed"
           }}
         >

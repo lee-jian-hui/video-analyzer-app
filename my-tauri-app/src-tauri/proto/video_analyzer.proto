@@ -16,6 +16,12 @@ service VideoAnalyzerService {
   rpc GetLastSession(Empty) returns (LastSessionResponse);
   rpc GetChatHistory(GetHistoryRequest) returns (GetChatHistoryResponse);
   rpc ClearChatHistory(ClearHistoryRequest) returns (ClearHistoryResponse);
+
+  // Session control
+  // Explicitly resume a past session by video_id:
+  // - Loads the stored video_path into the VideoContext
+  // - Returns confirmation and resolved metadata
+  rpc ResumeSession(ResumeRequest) returns (ResumeResponse);
 }
 
 // File upload messages
@@ -108,4 +114,17 @@ message ChatMessage {
   string role = 1;
   string content = 2;
   string timestamp = 3;
+}
+
+// Session control messages
+message ResumeRequest {
+  string video_id = 1; // Required: target session/video identifier
+}
+
+message ResumeResponse {
+  bool success = 1;
+  string message = 2;
+  string video_id = 3;
+  string video_name = 4;
+  string video_path = 5;
 }

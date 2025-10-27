@@ -9,6 +9,7 @@ interface ChatComponentProps {
   onVideoUploaded: (videoId: string, filename: string) => void;
   onChatAction: (query: string, summary: string, stream: ChatResponseItem[]) => void;
   initialAssistantMessage?: string;
+  initialConversation?: ConversationEntry[];
   resumeLoading?: boolean;
   backendReady?: boolean;
 }
@@ -17,7 +18,7 @@ const DEFAULT_RESULT_COPY =
   "Run a query to see the assistant response. Streaming chunks will be rendered here.";
 const MAX_INLINE_CHARS = 400;
 
-export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onChatAction, initialAssistantMessage, resumeLoading, backendReady }: ChatComponentProps) {
+export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onChatAction, initialAssistantMessage, initialConversation, resumeLoading, backendReady }: ChatComponentProps) {
   const [customQuery, setCustomQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
@@ -44,6 +45,14 @@ export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onCha
       ]);
     }
   }, [initialAssistantMessage, videoId]);
+
+  // Seed full conversation when provided (no summary resume path)
+  useEffect(() => {
+    if (conversation.length > 0) return;
+    if (!initialConversation || initialConversation.length === 0) return;
+    console.log("[Chat] Seeding full conversation from history (count):", initialConversation.length);
+    setConversation(initialConversation);
+  }, [initialConversation, videoId]);
 
   function triggerFileDialog() {
     if (!backendReady) {
@@ -317,7 +326,7 @@ function renderConversationContent(text: string) {
   }
 
   return (
-    <>
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, height: "100%", overflow: "hidden" }}>
       <input
         type="file"
         accept=".mp4,video/mp4"
@@ -344,6 +353,6 @@ function renderConversationContent(text: string) {
         onClearChat={handleClearChat}
         clearing={clearing}
       />
-    </>
+    </div>
   );
 }

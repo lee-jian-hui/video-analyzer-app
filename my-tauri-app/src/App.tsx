@@ -4,7 +4,7 @@ import { ChatComponent } from "./components/ChatComponent";
 import { ActionHistoryPanel, ActionEntry } from "./components/ActionHistoryPanel";
 import { ChatResultsPanel } from "./components/chat/ChatResultsPanel";
 import { ChatHistoryPanel } from "./components/chat/ChatHistoryPanel";
-import type { ChatResponseItem, ChatMessage } from "./components/chat/types";
+import type { ChatResponseItem, ChatMessage, ConversationEntry } from "./components/chat/types";
 import { appLayoutConfig, isFullscreenViewport, historyConfig } from "./configs";
 import { invoke } from "@tauri-apps/api/core";
 import { storageManager, StorageKey } from "./utils/localStorageManager";
@@ -36,6 +36,7 @@ function App() {
   const [initialAssistantMessage, setInitialAssistantMessage] = useState<string | null>(null);
   const [resumeLoading, setResumeLoading] = useState(false);
   const [backendReady, setBackendReady] = useState(false);
+  const [initialConversation, setInitialConversation] = useState<ConversationEntry[] | undefined>(undefined);
 
   useEffect(() => {
     // Restore action history from localStorage
@@ -155,9 +156,17 @@ function App() {
           try {
             setResumeLoading(true);
             console.log("[Resume] Fetching chat history for:", last.video_id);
+            // Ensure backend restores the previous session context first
+            try {
+              const resumeResp = await invoke("resume_session", { video_id: last.video_id });
+              console.log("[Resume] resume_session response:", resumeResp);
+            } catch (resumeErr) {
+              console.warn("[Resume] resume_session failed (continuing anyway):", resumeErr);
+            }
+            const includeFull = !historyConfig.resumeUseSummary;
             const historyResp = await invoke("get_chat_history", {
               video_id: last.video_id,
-              include_full_messages: false,
+              include_full_messages: includeFull,
             });
             const history = historyResp as {
               conversation_summary?: string;
@@ -165,26 +174,29 @@ function App() {
             };
 
             console.log("[Resume] get_chat_history response:", history);
-            if (history?.conversation_summary && history.conversation_summary.trim()) {
+            if (historyConfig.resumeUseSummary && history?.conversation_summary && history.conversation_summary.trim()) {
               const msg = history.conversation_summary.trim();
               console.log("[Resume] Using conversation_summary (len=", msg.length, ")");
               setInitialAssistantMessage(msg);
+              setInitialConversation(undefined);
             } else if (history?.recent_messages && history.recent_messages.length > 0) {
-              const recap = history.recent_messages
-                .slice(-6)
-                .map((m) => `${m.role ?? "assistant"}: ${m.content ?? ""}`.trim())
-                .filter(Boolean)
-                .join("\n");
-              const fallback = recap
-                ? `Here’s a quick recap from your last session:\n${recap}`
-                : "Resuming your last session. No summary available, but you can continue chatting.";
-              console.log("[Resume] Using recent_messages recap, chars:", fallback.length);
-              setInitialAssistantMessage(fallback);
+              // Map recent_messages to conversation bubbles
+              const entries: ConversationEntry[] = history.recent_messages
+                .map((m, i) => ({
+                  id: `resume-${Date.now()}-${i}`,
+                  role: (m.role === 'user' ? 'user' : 'assistant') as const,
+                  content: (m.content ?? '').trim(),
+                }))
+                .filter((e) => e.content.length > 0);
+              console.log("[Resume] Using full recent_messages as conversation, count:", entries.length);
+              setInitialAssistantMessage(null);
+              setInitialConversation(entries);
             } else {
               console.log("[Resume] No summary or recent messages. Using default resume notice.");
               setInitialAssistantMessage(
                 "Resuming your last session. No prior summary was found; feel free to continue."
               );
+              setInitialConversation(undefined);
             }
           } catch (err) {
             console.error("Failed to fetch summarized chat history:", err);
@@ -287,30 +299,43 @@ function App() {
   const containerStyle: CSSProperties = {
     maxWidth: fullscreen ? "min(1250px, 95vw)" : `${appLayoutConfig.defaultWidth}px`,
     width: "100%",
+    height: "100vh",
     margin: "0 auto",
     paddingTop: `${appLayoutConfig.containerPaddingTopVH}vh`,
-    minHeight: `${appLayoutConfig.defaultHeight}px`,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     gap: "1rem",
     boxSizing: "border-box",
     paddingLeft: "1.25rem",
-    paddingRight: "1.25rem"
+    paddingRight: "1.25rem",
+    overflow: "hidden"
   };
 
   return (
     <main className="container" style={containerStyle}>
       <h1>🎥 Video AI Processor</h1>
       <p>Upload MP4 files, then chat with them. All actions are logged so you always know the active video.</p>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateRows: "1fr",
+          gap: "1.5rem",
+          width: "100%",
+          flex: 1,
+          minHeight: 0,
+          height: "100%",
+          overflow: "hidden",
+        }}
+      >
 
-      <div style={{ display: "grid", gap: "1.5rem" , width: "100%"}}>
         <ChatComponent
           videoId={currentVideo?.id ?? ""}
           activeVideoName={currentVideo?.name}
           onVideoUploaded={handleUploadComplete}
           onChatAction={handleChatAction}
           initialAssistantMessage={initialAssistantMessage ?? undefined}
+          initialConversation={initialConversation}
           resumeLoading={resumeLoading}
           backendReady={backendReady}
         />
