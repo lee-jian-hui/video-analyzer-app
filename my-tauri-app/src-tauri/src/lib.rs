@@ -2,29 +2,30 @@ use serde_json::Value;
 use tokio_stream::iter;
 use tonic::{transport::Channel, Request};
 
+mod config;
+use config::GrpcConfig;
+
 pub mod video_analyzer {
     tonic::include_proto!("video_analyzer");
 }
 
 use video_analyzer::{
-    video_analyzer_service_client::VideoAnalyzerServiceClient, ChatRequest, ChatResponse,
-    HistoryRequest, RegisterVideoRequest, VerifyVideoRequest, VideoChunk,
+    video_analyzer_service_client::VideoAnalyzerServiceClient,
+    ChatRequest, ChatResponse, ClearHistoryRequest, Empty, GetHistoryRequest,
+    RegisterVideoRequest, VideoChunk,
 };
 
-// Constants
-// TODO: move into env later
-const GRPC_SERVER_URL: &str = "http://127.0.0.1:50051";
-const VIDEO_CHUNK_SIZE: usize = 512 * 1024;
-
 async fn connect_client() -> Result<VideoAnalyzerServiceClient<Channel>, String> {
-    VideoAnalyzerServiceClient::connect(GRPC_SERVER_URL)
+    let server_url = GrpcConfig::server_url();
+    VideoAnalyzerServiceClient::connect(server_url.clone())
         .await
-        .map_err(|e| format!("Failed to connect to gRPC server at {}: {}", GRPC_SERVER_URL, e))
+        .map_err(|e| format!("Failed to connect to gRPC server at {}: {}", server_url, e))
 }
 
 fn build_video_chunks(filename: &str, video_data: Vec<u8>) -> Vec<VideoChunk> {
+    let chunk_size = GrpcConfig::video_chunk_size();
     video_data
-        .chunks(VIDEO_CHUNK_SIZE)
+        .chunks(chunk_size)
         .enumerate()
         .map(|(idx, chunk)| VideoChunk {
             data: chunk.to_vec(),
@@ -105,8 +106,9 @@ async fn process_query(
     _query_type: String,
 ) -> Result<Value, String> {
     let request = ChatRequest {
-        file_id: video_id,
         message: query,
+        file_id: video_id,
+        context: String::new(),  // Empty context for now
     };
 
     let mut client = connect_client().await?;
@@ -120,12 +122,73 @@ async fn process_query(
 }
 
 #[tauri::command(rename_all = "snake_case")]
-async fn get_processing_status(limit: i32) -> Result<Value, String> {
-    let request = HistoryRequest { limit };
+async fn get_last_session() -> Result<Value, String> {
+    println!("🦀 Rust: get_last_session called");
+
+    let request = Empty {};
+
+    let mut client = connect_client().await?;
+    let response = client
+        .get_last_session(Request::new(request))
+        .await
+        .map_err(|e| format!("gRPC call failed: {}", e))?;
+
+    serde_json::to_value(response.into_inner())
+        .map_err(|e| format!("Failed to serialize response: {}", e))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn get_chat_history(
+    video_id: String,
+    include_full_messages: bool,
+) -> Result<Value, String> {
+    println!(
+        "🦀 Rust: get_chat_history called for video_id: {}, include_full: {}",
+        video_id, include_full_messages
+    );
+
+    let request = GetHistoryRequest {
+        video_id,
+        include_full_messages,
+    };
 
     let mut client = connect_client().await?;
     let response = client
         .get_chat_history(Request::new(request))
+        .await
+        .map_err(|e| format!("gRPC call failed: {}", e))?;
+
+    serde_json::to_value(response.into_inner())
+        .map_err(|e| format!("Failed to serialize response: {}", e))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn clear_chat_history(video_id: String) -> Result<Value, String> {
+    println!("🦀 Rust: clear_chat_history called for video_id: {}", video_id);
+
+    let request = ClearHistoryRequest { video_id };
+
+    let mut client = connect_client().await?;
+    let response = client
+        .clear_chat_history(Request::new(request))
+        .await
+        .map_err(|e| format!("gRPC call failed: {}", e))?;
+
+    serde_json::to_value(response.into_inner())
+        .map_err(|e| format!("Failed to serialize response: {}", e))
+}
+
+// Legacy endpoint for backward compatibility (deprecated)
+#[tauri::command(rename_all = "snake_case")]
+async fn get_processing_status(_limit: i32) -> Result<Value, String> {
+    println!("🦀 Rust: get_processing_status called (deprecated, use get_last_session)");
+
+    // Redirect to get_last_session for now
+    let request = Empty {};
+
+    let mut client = connect_client().await?;
+    let response = client
+        .get_last_session(Request::new(request))
         .await
         .map_err(|e| format!("gRPC call failed: {}", e))?;
 
@@ -142,7 +205,10 @@ pub fn run() {
             upload_video,
             register_local_video,
             process_query,
-            get_processing_status
+            get_last_session,
+            get_chat_history,
+            clear_chat_history,
+            get_processing_status  // Legacy, kept for backward compatibility
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
