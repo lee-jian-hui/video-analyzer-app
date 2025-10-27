@@ -223,14 +223,14 @@ export function LiveChat({
             📋 Summarize
           </button>
           <button
-            onClick={() => onQuickAction("Detect all obejcts in the video")}
+            onClick={() => onQuickAction("Detect all objects and entities in the video")}
             disabled={!videoId || loading || !!resumeLoading || !backendReady}
             style={{
               padding: "0.4rem 0.95rem",
               borderRadius: "8px",
               border: "1px solid #dee2e6",
               background: videoId && !loading && !resumeLoading && backendReady ? "#fff" : "#f8f9fa",
-              cursor: videoId && !loading && !resumeLoading && backendReady ? "pointer" : "not-allowed"
+              cursord && !loading && !resumeLoading && backendReady ? "pointer" : "not-allowed"
             }}
           >
             🔍 Analyze Objects

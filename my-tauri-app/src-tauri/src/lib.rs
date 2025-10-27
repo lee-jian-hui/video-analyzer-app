@@ -1,5 +1,7 @@
 use serde_json::Value;
 use tokio_stream::iter;
+use tokio::io::AsyncReadExt;
+use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Channel, Request};
 use log::{info, debug, warn, error};
 
@@ -98,6 +100,70 @@ async fn upload_video(filename: String, video_data: Vec<u8>) -> Result<Value, St
     let inner = response.into_inner();
     debug!(
         "upload_video response: success={}, file_id={}",
+        inner.success,
+        inner.file_id
+    );
+    serde_json::to_value(inner)
+        .map_err(|e| format!("Failed to serialize response: {}", e))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn upload_video_from_path(file_path: String) -> Result<Value, String> {
+    println!("🦀 Rust: upload_video_from_path called with {}", file_path);
+
+    let chunk_size = GrpcConfig::video_chunk_size();
+    let filename = std::path::Path::new(&file_path)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("video.mp4")
+        .to_string();
+
+    // Channel-backed stream to avoid buffering entire file
+    let (tx, rx) = tokio::sync::mpsc::channel::<video_analyzer::VideoChunk>(8);
+
+    let mut file = tokio::fs::File::open(&file_path)
+        .await
+        .map_err(|e| format!("Failed to open file {}: {}", file_path, e))?;
+
+    // Spawn a task to read and send chunks
+    let fname_clone = filename.clone();
+    tokio::spawn(async move {
+        let mut idx: i32 = 0;
+        loop {
+            let mut buf = vec![0u8; chunk_size];
+            match file.read(&mut buf).await {
+                Ok(0) => break, // EOF
+                Ok(n) => {
+                    buf.truncate(n);
+                    let chunk = video_analyzer::VideoChunk {
+                        data: buf,
+                        filename: fname_clone.clone(),
+                        chunk_index: idx,
+                    };
+                    idx += 1;
+                    if tx.send(chunk).await.is_err() {
+                        break;
+                    }
+                }
+                Err(_) => {
+                    // Best effort; stop streaming on read error
+                    break;
+                }
+            }
+        }
+    });
+
+    let request_stream = ReceiverStream::new(rx);
+
+    let mut client = connect_client().await?;
+    let response = client
+        .upload_video(Request::new(request_stream))
+        .await
+        .map_err(|e| format!("gRPC call failed: {}", e))?;
+
+    let inner = response.into_inner();
+    debug!(
+        "upload_video_from_path response: success={}, file_id={}",
         inner.success,
         inner.file_id
     );
@@ -294,6 +360,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             upload_video,
+            upload_video_from_path,
             register_local_video,
             process_query,
             get_last_session,

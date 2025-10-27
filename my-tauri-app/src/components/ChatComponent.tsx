@@ -50,7 +50,11 @@ export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onCha
       console.warn("[Chat] Upload blocked — backend not ready");
       return;
     }
-    fileInputRef.current?.click();
+    // Prefer native dialog to get real file path (more efficient upload)
+    pickAndUploadViaDialog().catch((e) => {
+      console.warn("[Chat] Dialog not available, using file input:", e);
+      fileInputRef.current?.click();
+    });
   }
 
   function addConversationEntry(role: "user" | "assistant", content: string) {
@@ -88,7 +92,8 @@ export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onCha
       return;
     }
 
-    setUploadStatus("Uploading...");
+    // Fallback slow path: direct bytes upload (may freeze on big files)
+    setUploadStatus("Uploading (slow path)...");
     try {
       const arrayBuffer = await file.arrayBuffer();
       const videoData = Array.from(new Uint8Array(arrayBuffer));
@@ -111,6 +116,61 @@ export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onCha
       setUploadStatus(`❌ Upload error: ${error}`);
     } finally {
       event.target.value = "";
+    }
+  }
+
+  async function pickAndUploadViaDialog() {
+    // Try to dynamically import the plugin without forcing Vite to resolve it at build time
+    const modulePath = "@tauri-apps/plugin-dialog";
+    let openFn: undefined | ((opts: any) => Promise<string | string[] | null>);
+    try {
+      // @ts-expect-error vite-ignore prevents pre-bundling resolution
+      const mod = await import(/* @vite-ignore */ modulePath);
+      openFn = mod?.open;
+    } catch (e) {
+      throw new Error("dialog plugin not present");
+    }
+
+    if (!openFn) {
+      throw new Error("dialog open not available");
+    }
+
+    const selected = await openFn({
+      multiple: false,
+      filters: [{ name: "Video", extensions: ["mp4"] }],
+      title: "Select an MP4 file",
+    });
+    if (!selected) return; // cancelled
+
+    if (Array.isArray(selected)) {
+      if (!selected[0]) return;
+      await uploadViaPath(String(selected[0]));
+    } else {
+      await uploadViaPath(String(selected));
+    }
+  }
+
+  async function uploadViaPath(filePath: string) {
+    if (!filePath.toLowerCase().endsWith(".mp4")) {
+      setUploadStatus("Only MP4 files are supported right now.");
+      return;
+    }
+    setUploadStatus("Uploading...");
+    try {
+      const response = await invoke("upload_video_from_path", {
+        file_path: filePath,
+      });
+      const result = response as { file_id?: string; fileId?: string; success: boolean; message?: string };
+      const fileId = result.file_id ?? result.fileId ?? "";
+      const name = filePath.split(/[\\/]/).pop() || "video.mp4";
+      if (result.success && fileId) {
+        setUploadStatus(`✅ Uploaded ${name}`);
+        onVideoUploaded(fileId, name);
+      } else {
+        setUploadStatus(`❌ Upload failed${result.message ? `: ${result.message}` : ""}`);
+      }
+    } catch (error) {
+      setUploadStatus(`❌ Upload error: ${error}`);
     }
   }
 
