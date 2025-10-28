@@ -142,7 +142,7 @@ jobs:
         working-directory: video-analyser-backend
         run: |
           Write-Host "Building Windows executable..." -ForegroundColor Cyan
-          pyinstaller video_analyzer_backend.spec
+          uv run pyinstaller video_analyzer_backend.spec
           Write-Host "✓ Build completed" -ForegroundColor Green
 
       - name: Verify Build Output
