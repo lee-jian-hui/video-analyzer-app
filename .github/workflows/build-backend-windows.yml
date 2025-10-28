@@ -186,14 +186,14 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Trigger Windows Installer Build
-      if: github.ref == 'refs/heads/feature/integrate-python-backend'
-      run: |
-        Write-Host "Triggering Windows installer build..." -ForegroundColor Cyan
+    # - name: Trigger Windows Installer Build
+    #   if: github.ref == 'refs/heads/feature/integrate-python-backend'
+    #   run: |
+    #     Write-Host "Triggering Windows installer build..." -ForegroundColor Cyan
 
-        gh workflow run build-windows-installer.yml `
-          --ref ${{ github.ref_name }}
+    #     gh workflow run build-windows-installer.yml `
+    #       --ref ${{ github.ref_name }}
 
-        Write-Host "✓ Installer build triggered" -ForegroundColor Green
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #     Write-Host "✓ Installer build triggered" -ForegroundColor Green
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
