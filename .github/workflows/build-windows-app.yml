@@ -284,3 +284,27 @@ jobs:
             my-tauri-app/src-tauri/target/release/bundle/nsis/*.exe
             my-tauri-app/src-tauri/target/release/bundle/msi/*.msi
           retention-days: 30
+
+
+      - name: Publish to GitHub Release (latest)
+        if: success()
+        continue-on-error: true
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-windows
+          name: "Windows Installer (Latest Build)"
+          body: |
+            🪟 **Latest automated build**
+            - Commit: ${{ github.sha }}
+            - Branch: ${{ github.ref_name }}
+            - Built on: ${{ github.run_number }}
+            
+            This release includes:
+            - Python backend executable
+            - Tauri NSIS installer
+            - Ollama + FFmpeg sidecars
+          files: |
+            my-tauri-app/src-tauri/target/release/bundle/nsis/*.exe
+            my-tauri-app/src-tauri/target/release/bundle/msi/*.msi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
