@@ -81,107 +81,107 @@ jobs:
           path: video-analyser-backend/video_analyzer_backend.zip
 
   # 3️⃣ BUILD TAURI INSTALLER
-build-installer:
-  needs: build-backend
-  runs-on: windows-latest
-  steps:
-    - uses: actions/checkout@v4
-      with:
-        lfs: true
+  build-installer:
+    needs: build-backend
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
 
-    # === Backend sidecar from previous job ===
-    - name: Download Backend Artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: windows-backend   # <-- must match the uploader in backend job
-        path: my-tauri-app/src-tauri/sidecars
+      # === Backend sidecar from previous job ===
+      - name: Download Backend Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-backend   # <-- must match the uploader in backend job
+          path: my-tauri-app/src-tauri/sidecars
 
-    - name: Unpack backend
-      working-directory: my-tauri-app/src-tauri/sidecars
-      run: |
-        Expand-Archive -Path "video_analyzer_backend.zip" -DestinationPath "." -Force
-        # Ensure expected path exists:
-        if (!(Test-Path "video_analyzer_backend/video_analyzer_backend.exe")) {
-          Write-Host "Backend EXE missing at sidecars/video_analyzer_backend/video_analyzer_backend.exe" -ForegroundColor Red
-          exit 1
-        }
+      - name: Unpack backend
+        working-directory: my-tauri-app/src-tauri/sidecars
+        run: |
+          Expand-Archive -Path "video_analyzer_backend.zip" -DestinationPath "." -Force
+          # Ensure expected path exists:
+          if (!(Test-Path "video_analyzer_backend/video_analyzer_backend.exe")) {
+            Write-Host "Backend EXE missing at sidecars/video_analyzer_backend/video_analyzer_backend.exe" -ForegroundColor Red
+            exit 1
+          }
 
-    # === Other sidecars pulled from a Release tag (if you host them there) ===
-    - name: Stage launcher/ffmpeg/ollama sidecars
-      run: |
-        $repo = "${{ github.repository }}"
-        $tag  = "large-files"
-        $dst  = "my-tauri-app/src-tauri/sidecars"
-        New-Item -ItemType Directory -Force -Path $dst | Out-Null
-        function Get-Release($name, $out) {
-          $u = "https://github.com/$repo/releases/download/$tag/$name"
-          Invoke-WebRequest -Uri $u -OutFile "$dst\$out" -UseBasicParsing
-        }
-        # Match tauri.conf.json externalBin names:
-        Get-Release "launcher.exe" "launcher.exe"
-        Get-Release "ffmpeg.exe"   "ffmpeg.exe"
-        Get-Release "ollama.exe"   "ollama.exe"
+      # === Other sidecars pulled from a Release tag (if you host them there) ===
+      - name: Stage launcher/ffmpeg/ollama sidecars
+        run: |
+          $repo = "${{ github.repository }}"
+          $tag  = "large-files"
+          $dst  = "my-tauri-app/src-tauri/sidecars"
+          New-Item -ItemType Directory -Force -Path $dst | Out-Null
+          function Get-Release($name, $out) {
+            $u = "https://github.com/$repo/releases/download/$tag/$name"
+            Invoke-WebRequest -Uri $u -OutFile "$dst\$out" -UseBasicParsing
+          }
+          # Match tauri.conf.json externalBin names:
+          Get-Release "launcher.exe" "launcher.exe"
+          Get-Release "ffmpeg.exe"   "ffmpeg.exe"
+          Get-Release "ollama.exe"   "ollama.exe"
 
-    # === Resources (data, not executables) ===
-    - name: Ensure resource directories
-      run: |
-        New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/resources/installers" | Out-Null
-        New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/resources/ollama_models" | Out-Null
+      # === Resources (data, not executables) ===
+      - name: Ensure resource directories
+        run: |
+          New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/resources/installers" | Out-Null
+          New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/resources/ollama_models" | Out-Null
 
-    # If your Rust build expects the proto here:
-    - name: Sync proto for Rust build (if needed)
-      run: |
-        if (Test-Path "protos/video_analyzer.proto") {
-          New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/proto" | Out-Null
-          Copy-Item -Force -Path "protos/video_analyzer.proto" -Destination "my-tauri-app/src-tauri/proto/video_analyzer.proto"
-        }
+      # If your Rust build expects the proto here:
+      - name: Sync proto for Rust build (if needed)
+        run: |
+          if (Test-Path "protos/video_analyzer.proto") {
+            New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/proto" | Out-Null
+            Copy-Item -Force -Path "protos/video_analyzer.proto" -Destination "my-tauri-app/src-tauri/proto/video_analyzer.proto"
+          }
 
-    # === Tooling for the build job ===
-    - name: Setup Node
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: my-tauri-app/package-lock.json
+      # === Tooling for the build job ===
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: my-tauri-app/package-lock.json
 
-    - name: Setup Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        targets: x86_64-pc-windows-msvc
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
 
-    - name: Install protoc and expose to PATH
-      run: |
-        choco install protoc -y
-        $protoc = "C:\ProgramData\chocolatey\lib\protoc\tools\bin\protoc.exe"
-        Add-Content -Path $env:GITHUB_ENV -Value "PROTOC=$protoc"
-        Add-Content -Path $env:GITHUB_ENV -Value "PATH=$env:PATH;$(Split-Path $protoc)"
-        & $protoc --version
+      - name: Install protoc and expose to PATH
+        run: |
+          choco install protoc -y
+          $protoc = "C:\ProgramData\chocolatey\lib\protoc\tools\bin\protoc.exe"
+          Add-Content -Path $env:GITHUB_ENV -Value "PROTOC=$protoc"
+          Add-Content -Path $env:GITHUB_ENV -Value "PATH=$env:PATH;$(Split-Path $protoc)"
+          & $protoc --version
 
-    # Optional but recommended for Windows packaging
-    - name: Install NSIS + WebView2
-      run: |
-        choco install nsis -y
-        choco install microsoft-edge-webview2-runtime -y
+      # Optional but recommended for Windows packaging
+      - name: Install NSIS + WebView2
+        run: |
+          choco install nsis -y
+          choco install microsoft-edge-webview2-runtime -y
 
-    - name: Verify staged paths
-      run: |
-        Write-Host "Sidecars:"
-        Get-ChildItem -Recurse -File my-tauri-app/src-tauri/sidecars | % { $_.FullName }
-        Write-Host "`nResources:"
-        Get-ChildItem -Recurse -File my-tauri-app/src-tauri/resources | % { $_.FullName }
+      - name: Verify staged paths
+        run: |
+          Write-Host "Sidecars:"
+          Get-ChildItem -Recurse -File my-tauri-app/src-tauri/sidecars | % { $_.FullName }
+          Write-Host "`nResources:"
+          Get-ChildItem -Recurse -File my-tauri-app/src-tauri/resources | % { $_.FullName }
 
-    - name: Install frontend deps
-      working-directory: my-tauri-app
-      run: npm ci
+      - name: Install frontend deps
+        working-directory: my-tauri-app
+        run: npm ci
 
-    - name: Build Tauri installer
-      working-directory: my-tauri-app
-      run: npm run tauri build
+      - name: Build Tauri installer
+        working-directory: my-tauri-app
+        run: npm run tauri build
 
-    - name: Upload Installer Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: windows-installer
-        path: |
-          my-tauri-app/src-tauri/target/release/bundle/nsis/*.exe
-          my-tauri-app/src-tauri/target/release/bundle/msi/*.msi
+      - name: Upload Installer Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: |
+            my-tauri-app/src-tauri/target/release/bundle/nsis/*.exe
+            my-tauri-app/src-tauri/target/release/bundle/msi/*.msi
