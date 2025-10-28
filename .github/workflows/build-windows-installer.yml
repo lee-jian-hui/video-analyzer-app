@@ -19,6 +19,16 @@ jobs:
       with:
         lfs: true  # Enable Git LFS for large files
 
+    - name: Verify windows directory exists
+      run: |
+        Write-Host "Checking if windows directory exists..." -ForegroundColor Cyan
+        if (Test-Path "my-tauri-app/src-tauri/windows") {
+          Write-Host "✓ windows directory exists" -ForegroundColor Green
+          Get-ChildItem "my-tauri-app/src-tauri/windows"
+        } else {
+          Write-Host "✗ windows directory NOT found" -ForegroundColor Red
+        }
+
     - name: Download Large Files from GitHub Releases
       run: |
         Write-Host "Downloading large files from GitHub Releases..." -ForegroundColor Cyan
