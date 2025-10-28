@@ -114,20 +114,22 @@ jobs:
           }
           Write-Host "✓ ML models directory ready" -ForegroundColor Green
 
-      - name: Install Dependencies
+      - name: Install Dependencies with uv
         working-directory: video-analyser-backend
         run: |
-          Write-Host "Installing Python dependencies..." -ForegroundColor Cyan
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt || (
-            pip install grpcio grpcio-tools protobuf `
-              python-dotenv langchain tiktoken `
-              torch torchvision --index-url https://download.pytorch.org/whl/cpu `
-              transformers accelerate opencv-python-headless `
-              ultralytics openai-whisper google-generativeai `
-              numpy pillow pyinstaller
-          )
-          Write-Host "✓ Dependencies installed" -ForegroundColor Green
+          Write-Host "Installing Python dependencies using uv..." -ForegroundColor Cyan
+
+          # Ensure uv is available
+          python -m pip install --upgrade uv
+
+          # Show environment info
+          uv --version
+          python --version
+
+          # Install project dependencies from pyproject.toml
+          uv sync --all-extras --dev
+
+          Write-Host "✓ Dependencies installed via uv" -ForegroundColor Green
 
       - name: Generate PyInstaller Spec
         working-directory: video-analyser-backend
