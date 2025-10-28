@@ -123,7 +123,8 @@ jobs:
       - name: Package backend
         working-directory: video-analyser-backend
         run: |
-          Compress-Archive -Path "dist\video_analyzer_backend\*" -DestinationPath "video_analyzer_backend.zip" -Force
+          # Zip the directory itself so the top-level folder exists inside the zip
+          Compress-Archive -Path "dist\video_analyzer_backend" -DestinationPath "video_analyzer_backend.zip" -Force
 
       - name: Upload backend artifact
         uses: actions/upload-artifact@v4
