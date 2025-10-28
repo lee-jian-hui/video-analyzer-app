@@ -2,24 +2,30 @@
 Generates a PyInstaller spec file dynamically from requirements and project structure.
 """
 import os
+import sys
 from PyInstaller.utils.hooks import collect_submodules
 
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+# Ensure base project directory (2 levels up from this script)
+SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
+BASE_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 
-# Main entrypoint of your backend (change if needed)
+# Main entrypoint of your backend (adjust if needed)
 ENTRYPOINT = "server.py"
 
-# Directories/files to include
+# Data directories to include in the build
 DATA_DIRS = ["protos", "ml-models"]
 DATAS = [
     (os.path.join(BASE_DIR, d), d)
     for d in DATA_DIRS
     if os.path.exists(os.path.join(BASE_DIR, d))
 ]
-if os.path.exists(os.path.join(BASE_DIR, ".env")):
-    DATAS.append((os.path.join(BASE_DIR, ".env"), "."))
 
-# Collect hidden imports dynamically
+# Include .env if present
+env_path = os.path.join(BASE_DIR, ".env")
+if os.path.exists(env_path):
+    DATAS.append((env_path, "."))
+
+# Dynamically collect hidden imports for common ML/AI packages
 PACKAGES = [
     "torch",
     "transformers",
@@ -82,7 +88,15 @@ coll = COLLECT(
 )
 """
 
+# Always write spec file to the project root (not /scripts/)
 spec_path = os.path.join(BASE_DIR, "video_analyzer_backend.spec")
+
+os.makedirs(BASE_DIR, exist_ok=True)
 with open(spec_path, "w", encoding="utf-8") as f:
     f.write(spec_content)
-print(f"Spec file generated at {spec_path}")
+
+# Safe print for Windows CP1252 terminals
+try:
+    print(f"✅ Spec file generated at {spec_path}")
+except UnicodeEncodeError:
+    print(f"Spec file generated at {spec_path}")_

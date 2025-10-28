@@ -72,7 +72,7 @@ jobs:
             --python_out=protos `
             --grpc_python_out=protos `
             protos/video_analyzer.proto
-          Write-Host "✓ gRPC code generated" -ForegroundColor Green
+          Write-Host "SUCESS: gRPC code generated" -ForegroundColor Green
 
       - name: Upload Generated gRPC Code
         uses: actions/upload-artifact@v4
@@ -112,7 +112,7 @@ jobs:
             # Add placeholder file to prevent PyInstaller errors
             Set-Content -Path "ml-models/placeholder.txt" -Value "Placeholder for model weights"
           }
-          Write-Host "✓ ML models directory ready" -ForegroundColor Green
+          Write-Host "SUCESS: ML models directory ready" -ForegroundColor Green
 
       - name: Install Dependencies with uv
         working-directory: video-analyser-backend
@@ -129,32 +129,32 @@ jobs:
           # Install project dependencies from pyproject.toml
           uv sync --all-extras --dev
 
-          Write-Host "✓ Dependencies installed via uv" -ForegroundColor Green
+          Write-Host "SUCESS: Dependencies installed via uv" -ForegroundColor Green
 
       - name: Generate PyInstaller Spec
         working-directory: video-analyser-backend
         run: |
           Write-Host "Generating PyInstaller spec..." -ForegroundColor Cyan
           uv run python scripts/generate_pyinstaller_spec.py
-          Write-Host "✓ Spec file created" -ForegroundColor Green
+          Write-Host "SUCESS: Spec file created" -ForegroundColor Green
 
       - name: Build Executable
         working-directory: video-analyser-backend
         run: |
           Write-Host "Building Windows executable..." -ForegroundColor Cyan
           uv run pyinstaller video_analyzer_backend.spec
-          Write-Host "✓ Build completed" -ForegroundColor Green
+          Write-Host "SUCESS: Build completed" -ForegroundColor Green
 
       - name: Verify Build Output
         working-directory: video-analyser-backend
         run: |
           $exePath = "dist\video_analyzer_backend\video_analyzer_backend.exe"
           if (!(Test-Path $exePath)) {
-            Write-Host "✗ Executable not found at: $exePath" -ForegroundColor Red
+            Write-Host "FAIL: Executable not found at: $exePath" -ForegroundColor Red
             exit 1
           }
           $size = [math]::Round((Get-Item $exePath).Length / 1MB, 2)
-          Write-Host "✓ Verified executable exists ($size MB)" -ForegroundColor Green
+          Write-Host "SUCESS: Verified executable exists ($size MB)" -ForegroundColor Green
 
       - name: Package Backend
         working-directory: video-analyser-backend
@@ -162,7 +162,7 @@ jobs:
           Write-Host "Packaging backend..." -ForegroundColor Cyan
           Compress-Archive -Path "dist\video_analyzer_backend\*" -DestinationPath "video_analyzer_backend.zip" -Force
           $zipSize = [math]::Round((Get-Item "video_analyzer_backend.zip").Length / 1MB, 2)
-          Write-Host "✓ Package created (size: $zipSize MB)" -ForegroundColor Green
+          Write-Host "SUCESS: Package created (size: $zipSize MB)" -ForegroundColor Green
 
       - name: Upload Backend Artifact
         uses: actions/upload-artifact@v4
