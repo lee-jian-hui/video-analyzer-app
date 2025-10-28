@@ -72,9 +72,6 @@ jobs:
         Expand-Archive -Path "models.zip" -DestinationPath "my-tauri-app/src-tauri/resources/ollama_models" -Force
         Remove-Item "models.zip"
 
-        Write-Host "`nDownloading NSIS hooks..." -ForegroundColor Cyan
-        Download-ReleaseAsset "hooks.nsh" "my-tauri-app/src-tauri/windows/hooks.nsh"
-
         Write-Host "`n✓ All files downloaded successfully!" -ForegroundColor Green
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -89,8 +86,7 @@ jobs:
           "my-tauri-app/src-tauri/sidecars/ollama.exe",
           "my-tauri-app/src-tauri/sidecars/ffmpeg.exe",
           "my-tauri-app/src-tauri/resources/installers/vc_redist.x64.exe",
-          "my-tauri-app/src-tauri/resources/installers/dxwebsetup.exe",
-          "my-tauri-app/src-tauri/windows/hooks.nsh"
+          "my-tauri-app/src-tauri/resources/installers/dxwebsetup.exe"
         )
 
         $missing = @()

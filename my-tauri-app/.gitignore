@@ -31,6 +31,6 @@ dist-ssr
 #
 src-tauri/resources
 src-tauri/sidecars
-src-tauri/windows
+# src-tauri/windows - Commented out to allow hooks.nsh to be committed
 
 
