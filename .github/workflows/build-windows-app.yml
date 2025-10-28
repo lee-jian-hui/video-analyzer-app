@@ -250,6 +250,15 @@ jobs:
         working-directory: my-tauri-app
         run: npm ci
 
+
+      - name: Patch launcher binary naming
+        shell: pwsh
+        run: |
+          $dst = "my-tauri-app/src-tauri/sidecars"
+          if (Test-Path "$dst/launcher.exe") {
+            Copy-Item "$dst/launcher.exe" "$dst/launcher.exe-x86_64-pc-windows-msvc.exe" -Force
+          }
+
       - name: Build Tauri installer
         working-directory: my-tauri-app
         run: npm run tauri build
