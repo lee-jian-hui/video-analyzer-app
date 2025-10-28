@@ -174,9 +174,20 @@ jobs:
             $u = "https://github.com/$repo/releases/download/$tag/$name"
             Invoke-WebRequest -Uri $u -OutFile "$dst\$out" -UseBasicParsing
           }
-          Get-Release "launcher.exe" "launcher.exe"
-          Get-Release "ffmpeg.exe"   "ffmpeg.exe"
-          Get-Release "ollama.exe"   "ollama.exe"
+
+          # note: rename the launcher asset to launcher.exe locally
+          Get-Release "launcher-x86_64-pc-windows-msvc.exe" "launcher.exe"
+          Get-Release "ffmpeg.exe"                          "ffmpeg.exe"
+          Get-Release "ollama.exe"                          "ollama.exe"
+
+          # optional: stage installers & models too if you use them
+          New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/resources/installers" | Out-Null
+          New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/resources/ollama_models" | Out-Null
+          Invoke-WebRequest -Uri "https://github.com/$repo/releases/download/$tag/vc_redist.x64.exe" -OutFile "my-tauri-app/src-tauri/resources/installers/vc_redist.x64.exe" -UseBasicParsing
+          Invoke-WebRequest -Uri "https://github.com/$repo/releases/download/$tag/dxwebsetup.exe"    -OutFile "my-tauri-app/src-tauri/resources/installers/dxwebsetup.exe"    -UseBasicParsing
+          Invoke-WebRequest -Uri "https://github.com/$repo/releases/download/$tag/ollama-models.zip" -OutFile "models.zip" -UseBasicParsing
+          Expand-Archive -Path "models.zip" -DestinationPath "my-tauri-app/src-tauri/resources/ollama_models" -Force
+          Remove-Item "models.zip"
 
       - name: Ensure resource directories
         run: |
