@@ -85,4 +85,4 @@ coll = COLLECT(
 spec_path = os.path.join(BASE_DIR, "video_analyzer_backend.spec")
 with open(spec_path, "w", encoding="utf-8") as f:
     f.write(spec_content)
-print(f"✅ Spec file generated at {spec_path}")
+print(f"Spec file generated at {spec_path}")
