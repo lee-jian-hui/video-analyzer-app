@@ -61,7 +61,7 @@ jobs:
           pip install grpcio-tools
         }
 
-        python -c "import grpc_tools; print('✓ grpc_tools is available')"
+        python -c "import grpc_tools; print('grpc_tools is available')"
 
 
     - name: Generate Python gRPC Code
