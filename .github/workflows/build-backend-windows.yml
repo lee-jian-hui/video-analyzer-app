@@ -135,7 +135,7 @@ jobs:
         working-directory: video-analyser-backend
         run: |
           Write-Host "Generating PyInstaller spec..." -ForegroundColor Cyan
-          python scripts/generate_pyinstaller_spec.py
+          uv run python scripts/generate_pyinstaller_spec.py
           Write-Host "✓ Spec file created" -ForegroundColor Green
 
       - name: Build Executable
