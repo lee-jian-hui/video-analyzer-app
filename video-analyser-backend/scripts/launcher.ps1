@@ -1,0 +1,235 @@
+# ========================================
+# Video Analyzer Launcher Script
+# ========================================
+# This script is compiled into launcher.exe and acts as the main entry point.
+# When user clicks the desktop shortcut, this launcher:
+#   1. Starts Ollama service
+#   2. Starts Python backend
+#   3. Launches the Tauri UI
+#   4. Monitors processes and cleans up on exit
+#
+# To compile: ps2exe launcher.ps1 launcher.exe -noConsole -title "Video Analyzer"
+
+param(
+    [string]$InstallDir = $PSScriptRoot
+)
+
+$ErrorActionPreference = "SilentlyContinue"
+
+# ========================================
+# Configuration
+# ========================================
+
+$OLLAMA_EXE = Join-Path $InstallDir "ollama.exe"
+$BACKEND_EXE = Join-Path $InstallDir "video_analyzer_backend\video_analyzer_backend.exe"
+$TAURI_EXE = Join-Path $InstallDir "Video Analyzer.exe"
+
+$OLLAMA_PORT = 11434
+$BACKEND_PORT = 50051
+$STARTUP_TIMEOUT = 60  # seconds
+
+# ========================================
+# Functions
+# ========================================
+
+function Test-PortListening {
+    param([int]$Port)
+    try {
+        $connection = New-Object System.Net.Sockets.TcpClient("127.0.0.1", $Port)
+        $connection.Close()
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+function Wait-ForPort {
+    param(
+        [int]$Port,
+        [int]$Timeout = 30,
+        [string]$ServiceName = "Service"
+    )
+
+    $elapsed = 0
+    while ($elapsed -lt $Timeout) {
+        if (Test-PortListening -Port $Port) {
+            return $true
+        }
+        Start-Sleep -Milliseconds 500
+        $elapsed++
+    }
+
+    [System.Windows.Forms.MessageBox]::Show(
+        "$ServiceName failed to start within $Timeout seconds.",
+        "Startup Error",
+        [System.Windows.Forms.MessageBoxButtons]::OK,
+        [System.Windows.Forms.MessageBoxIcon]::Error
+    )
+    return $false
+}
+
+function Start-ServiceProcess {
+    param(
+        [string]$ExePath,
+        [string]$ServiceName,
+        [hashtable]$EnvVars = @{}
+    )
+
+    if (-not (Test-Path $ExePath)) {
+        [System.Windows.Forms.MessageBox]::Show(
+            "Cannot find $ServiceName at: $ExePath",
+            "Missing Component",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Error
+        )
+        return $null
+    }
+
+    # Check if already running
+    $processName = [System.IO.Path]::GetFileNameWithoutExtension($ExePath)
+    $existing = Get-Process -Name $processName -ErrorAction SilentlyContinue
+    if ($existing) {
+        return $existing
+    }
+
+    # Start the process
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = $ExePath
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+
+    # Set environment variables
+    foreach ($key in $EnvVars.Keys) {
+        $startInfo.EnvironmentVariables[$key] = $EnvVars[$key]
+    }
+
+    try {
+        $process = [System.Diagnostics.Process]::Start($startInfo)
+        return $process
+    } catch {
+        [System.Windows.Forms.MessageBox]::Show(
+            "Failed to start $ServiceName`n`nError: $_",
+            "Startup Error",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Error
+        )
+        return $null
+    }
+}
+
+function Stop-ServiceProcess {
+    param([string]$ProcessName)
+
+    Get-Process -Name $ProcessName -ErrorAction SilentlyContinue | ForEach-Object {
+        try {
+            $_.Kill()
+            $_.WaitForExit(5000)
+        } catch {
+            # Process already exited
+        }
+    }
+}
+
+# ========================================
+# Main Launcher Logic
+# ========================================
+
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
+# Check if already running
+$mutex = New-Object System.Threading.Mutex($false, "Global\VideoAnalyzerLauncher")
+if (-not $mutex.WaitOne(0)) {
+    [System.Windows.Forms.MessageBox]::Show(
+        "Video Analyzer is already running.",
+        "Already Running",
+        [System.Windows.Forms.MessageBoxButtons]::OK,
+        [System.Windows.Forms.MessageBoxIcon]::Information
+    )
+    exit 0
+}
+
+# ========================================
+# Step 1: Start Ollama
+# ========================================
+
+$ollamaEnv = @{
+    "OLLAMA_HOST" = "127.0.0.1:$OLLAMA_PORT"
+    "OLLAMA_MODELS" = Join-Path $InstallDir "ollama_models"
+}
+
+$ollamaProcess = Start-ServiceProcess -ExePath $OLLAMA_EXE -ServiceName "Ollama" -EnvVars $ollamaEnv
+if (-not $ollamaProcess) {
+    $mutex.ReleaseMutex()
+    exit 1
+}
+
+# Wait for Ollama to be ready
+if (-not (Wait-ForPort -Port $OLLAMA_PORT -Timeout 30 -ServiceName "Ollama")) {
+    Stop-ServiceProcess -ProcessName "ollama"
+    $mutex.ReleaseMutex()
+    exit 1
+}
+
+# ========================================
+# Step 2: Start Backend
+# ========================================
+
+$backendEnv = @{
+    "OLLAMA_BASE_URL" = "http://127.0.0.1:$OLLAMA_PORT"
+    "FUNCTION_CALLING_BACKEND" = "ollama"
+    "CHAT_BACKEND" = "ollama"
+    "HF_HUB_OFFLINE" = "true"
+    "TRANSFORMERS_OFFLINE" = "true"
+    "GRPC_PORT" = "$BACKEND_PORT"
+}
+
+$backendProcess = Start-ServiceProcess -ExePath $BACKEND_EXE -ServiceName "Backend" -EnvVars $backendEnv
+if (-not $backendProcess) {
+    Stop-ServiceProcess -ProcessName "ollama"
+    $mutex.ReleaseMutex()
+    exit 1
+}
+
+# Wait for backend to be ready
+if (-not (Wait-ForPort -Port $BACKEND_PORT -Timeout 60 -ServiceName "Backend")) {
+    Stop-ServiceProcess -ProcessName "video_analyzer_backend"
+    Stop-ServiceProcess -ProcessName "ollama"
+    $mutex.ReleaseMutex()
+    exit 1
+}
+
+# ========================================
+# Step 3: Launch Tauri UI
+# ========================================
+
+if (-not (Test-Path $TAURI_EXE)) {
+    [System.Windows.Forms.MessageBox]::Show(
+        "Cannot find Video Analyzer UI at: $TAURI_EXE",
+        "Missing Component",
+        [System.Windows.Forms.MessageBoxButtons]::OK,
+        [System.Windows.Forms.MessageBoxIcon]::Error
+    )
+    Stop-ServiceProcess -ProcessName "video_analyzer_backend"
+    Stop-ServiceProcess -ProcessName "ollama"
+    $mutex.ReleaseMutex()
+    exit 1
+}
+
+# Launch UI (visible window)
+$tauriProcess = Start-Process -FilePath $TAURI_EXE -PassThru
+
+# ========================================
+# Step 4: Monitor and Cleanup
+# ========================================
+
+# Wait for UI to exit
+$tauriProcess.WaitForExit()
+
+# Cleanup background processes
+Stop-ServiceProcess -ProcessName "video_analyzer_backend"
+Stop-ServiceProcess -ProcessName "ollama"
+
+$mutex.ReleaseMutex()
+exit 0

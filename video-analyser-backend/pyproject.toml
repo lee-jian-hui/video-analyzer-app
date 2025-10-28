@@ -5,32 +5,48 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "accelerate>=1.11.0",
-    "bitsandbytes>=0.48.1",
-    "graphviz>=0.21",
+    # Core framework
     "grpcio>=1.76.0",
     "grpcio-tools>=1.76.0",
-    "ipython>=8.37.0",
+    "python-dotenv>=1.1.1",
+
+    # LangChain & LLM
     "langchain>=1.0.2",
     "langchain-community>=0.4",
     "langchain-core>=1.0.1",
-    "langchain-google-genai>=3.0.0",
-    "langchain-huggingface>=1.0.0",
     "langchain-ollama>=1.0.0",
     "langgraph>=1.0.1",
-    "litellm>=1.79.0",
-    "mcp>=1.19.0",
-    "moviepy>=1.0.3",
-    "reportlab>=3.6.12",
     "ollama>=0.6.0",
+
+    # ML & Vision
+    "torch>=2.9.0",  # CPU version recommended for Windows
+    "torchvision>=0.24.0",
     "openai-whisper>=20250625",
     "opencv-python>=4.11.0.86",
-    "pillow>=12.0.0",
-    "pytesseract>=0.3.13",
-    "python-dotenv>=1.1.1",
-    "qwen-agent[code-interpreter]>=0.0.31",
-    "torch>=2.9.0",
-    "torchvision>=0.24.0",
-    "transformers>=4.57.1",
     "ultralytics>=8.3.221",
+    "transformers>=4.57.1",
+    "pillow>=12.0.0",
+
+    # Video processing
+    "moviepy>=1.0.3",
+
+    # Document generation
+    "reportlab>=3.6.12",
+
+    # OCR (optional)
+    "pytesseract>=0.3.13",
+
+    # Build tool
+    "pyinstaller>=6.0.0",
+
+    # Removed unused dependencies:
+    # - accelerate (only needed for GPU training)
+    # - bitsandbytes (GPU quantization)
+    # - graphviz (visualization, not needed in production)
+    # - ipython (development only)
+    # - langchain-google-genai (not using Google AI)
+    # - langchain-huggingface (not using HF directly)
+    # - litellm (not using multiple LLM providers)
+    # - mcp (not using MCP protocol)
+    # - qwen-agent (using Ollama instead)
 ]

@@ -34,6 +34,21 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "externalBin": [
+      "sidecars/launcher"
+    ],
+    "resources": [
+      "resources/installers/*",
+      "resources/ollama_models/**/*",
+      "sidecars/ollama.exe",
+      "sidecars/ffmpeg.exe",
+      "sidecars/video_analyzer_backend/**/*"
+    ],
+    "windows": {
+      "nsis": {
+        "installerHooks": "windows"
+      }
+    }
   }
 }

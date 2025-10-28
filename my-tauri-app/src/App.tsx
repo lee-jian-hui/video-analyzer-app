@@ -6,8 +6,6 @@ import { appLayoutConfig, isFullscreenViewport, historyConfig } from "./configs"
 import { invoke } from "@tauri-apps/api/core";
 // Removed localStorage persistence; backend is the source of truth
 
-const DEFAULT_RESULT_COPY = "Run a query to see the assistant response. Streaming chunks will be rendered here.";
-
 function App() {
   const [currentVideo, setCurrentVideo] = useState<{ id: string; name: string } | null>(null);
   const [viewportWidth, setViewportWidth] = useState(() =>
@@ -156,7 +154,7 @@ function App() {
               const entries: ConversationEntry[] = preHistory.recent_messages
                 .map((m, i) => ({
                   id: `resume-${Date.now()}-${i}`,
-                  role: (m.role === 'user' ? 'user' : 'assistant') as const,
+                  role: m.role === 'user' ? 'user' as const : 'assistant' as const,
                   content: (m.content ?? '').trim(),
                 }))
                 .filter((e) => e.content.length > 0);

@@ -1,4 +1,77 @@
 # catch all gitignore that catches other files
 
+# Video files
 *.mp4
+
+# IDE
 .vscode
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+ENV/
+env/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Rust
+target/
+Cargo.lock
+
+# Tauri
+my-tauri-app/src-tauri/target/
+my-tauri-app/dist/
+
+# Build artifacts
+video-analyser-backend/dist/
+video-analyser-backend/build/
+*.spec
+
+# Downloaded dependencies (rebuilt by CI)
+video-analyser-backend/scripts/launcher.exe
+my-tauri-app/src-tauri/resources/vc_redist.x64.exe
+my-tauri-app/src-tauri/resources/dxwebsetup.exe
+my-tauri-app/src-tauri/resources/ollama.exe
+my-tauri-app/src-tauri/sidecars/ffmpeg.exe
+my-tauri-app/src-tauri/sidecars/ollama.exe
+my-tauri-app/src-tauri/sidecars/launcher*.exe
+my-tauri-app/src-tauri/sidecars/video_analyzer_backend/
+
+# Large model files (consider using Git LFS or storing separately)
+# my-tauri-app/src-tauri/resources/models/
+# video-analyser-backend/ml-models/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~

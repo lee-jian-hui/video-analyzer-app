@@ -135,7 +135,6 @@ export function ChatComponent({ videoId, activeVideoName, onVideoUploaded, onCha
     const modulePath = "@tauri-apps/plugin-dialog";
     let openFn: undefined | ((opts: any) => Promise<string | string[] | null>);
     try {
-      // @ts-expect-error vite-ignore prevents pre-bundling resolution
       const mod = await import(/* @vite-ignore */ modulePath);
       openFn = mod?.open;
     } catch (e) {
