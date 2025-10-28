@@ -89,15 +89,18 @@ jobs:
         # Actual model download can be added if needed
         Write-Host "✓ ML models directory prepared" -ForegroundColor Green
 
+    - name: Generate PyInstaller spec dynamically
+      working-directory: video-analyser-backend
+      run: |
+        Write-Host "Generating PyInstaller spec..." -ForegroundColor Cyan
+        python scripts/generate_pyinstaller_spec.py
+        Write-Host "✓ Spec file created" -ForegroundColor Green
+
     - name: Build Backend with PyInstaller
       working-directory: video-analyser-backend
       run: |
-        Write-Host "Building Windows executable with PyInstaller..." -ForegroundColor Cyan
-        Write-Host "Using spec file: video_analyzer_backend.spec" -ForegroundColor Gray
-
-        # Build using the existing spec file
+        Write-Host "Building Windows executable..." -ForegroundColor Cyan
         pyinstaller video_analyzer_backend.spec
-
         Write-Host "✓ Build completed" -ForegroundColor Green
 
     - name: Verify Windows Executable
