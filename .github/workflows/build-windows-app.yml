@@ -251,12 +251,16 @@ jobs:
         run: npm ci
 
 
-      - name: Patch launcher binary naming
+      - name: Patch sidecar binary naming for Tauri
         shell: pwsh
         run: |
           $dst = "my-tauri-app/src-tauri/sidecars"
-          if (Test-Path "$dst/launcher.exe") {
-            Copy-Item "$dst/launcher.exe" "$dst/launcher.exe-x86_64-pc-windows-msvc.exe" -Force
+          foreach ($exe in @("launcher.exe", "ffmpeg.exe", "ollama.exe")) {
+            if (Test-Path "$dst/$exe") {
+              Copy-Item "$dst/$exe" "$dst/$exe-x86_64-pc-windows-msvc.exe" -Force
+            } else {
+              Write-Host "Missing expected sidecar: $exe" -ForegroundColor Yellow
+            }
           }
 
       - name: Build Tauri installer
