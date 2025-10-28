@@ -294,7 +294,7 @@ jobs:
           tag_name: latest-windows
           name: "Windows Installer (Latest Build)"
           body: |
-            🪟 **Latest automated build**
+            **Latest automated build**
             - Commit: ${{ github.sha }}
             - Branch: ${{ github.ref_name }}
             - Built on: ${{ github.run_number }}
