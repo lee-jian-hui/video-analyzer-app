@@ -19,9 +19,68 @@ jobs:
       with:
         lfs: true  # Enable Git LFS for large files
 
-    - name: Verify Required Files
+    - name: Download Large Files from GitHub Releases
       run: |
-        Write-Host "Checking required files..."
+        Write-Host "Downloading large files from GitHub Releases..." -ForegroundColor Cyan
+
+        # Set the release tag where large files are stored
+        # Change this to match your release tag (e.g., "v1.0.0-assets" or "large-files")
+        $RELEASE_TAG = "large-files"
+        $REPO = "${{ github.repository }}"
+
+        # Create directories
+        New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/sidecars" | Out-Null
+        New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/resources" | Out-Null
+        New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/windows" | Out-Null
+
+        # Function to download from GitHub Release
+        function Download-ReleaseAsset {
+          param($filename, $destination)
+
+          $url = "https://github.com/$REPO/releases/download/$RELEASE_TAG/$filename"
+          Write-Host "  Downloading $filename..." -ForegroundColor Yellow
+
+          try {
+            Invoke-WebRequest -Uri $url -OutFile $destination -ErrorAction Stop
+            Write-Host "  ✓ Downloaded $filename" -ForegroundColor Green
+          } catch {
+            Write-Host "  ✗ Failed to download $filename" -ForegroundColor Red
+            Write-Host "    URL: $url" -ForegroundColor Gray
+            Write-Host "    Error: $_" -ForegroundColor Red
+            throw
+          }
+        }
+
+        # Download all required files
+        Write-Host "`nDownloading sidecars..." -ForegroundColor Cyan
+        Download-ReleaseAsset "launcher-x86_64-pc-windows-msvc.exe" "my-tauri-app/src-tauri/sidecars/launcher-x86_64-pc-windows-msvc.exe"
+        Download-ReleaseAsset "ollama.exe" "my-tauri-app/src-tauri/sidecars/ollama.exe"
+        Download-ReleaseAsset "ffmpeg.exe" "my-tauri-app/src-tauri/sidecars/ffmpeg.exe"
+
+        Write-Host "`nDownloading Python backend..." -ForegroundColor Cyan
+        Download-ReleaseAsset "video_analyzer_backend.zip" "backend.zip"
+        Expand-Archive -Path "backend.zip" -DestinationPath "my-tauri-app/src-tauri/sidecars/video_analyzer_backend" -Force
+        Remove-Item "backend.zip"
+
+        Write-Host "`nDownloading system dependencies..." -ForegroundColor Cyan
+        Download-ReleaseAsset "vc_redist.x64.exe" "my-tauri-app/src-tauri/resources/vc_redist.x64.exe"
+        Download-ReleaseAsset "dxwebsetup.exe" "my-tauri-app/src-tauri/resources/dxwebsetup.exe"
+
+        Write-Host "`nDownloading Ollama models..." -ForegroundColor Cyan
+        Download-ReleaseAsset "ollama-models.zip" "models.zip"
+        Expand-Archive -Path "models.zip" -DestinationPath "my-tauri-app/src-tauri/resources/models" -Force
+        Remove-Item "models.zip"
+
+        Write-Host "`nDownloading NSIS hooks..." -ForegroundColor Cyan
+        Download-ReleaseAsset "hooks.nsh" "my-tauri-app/src-tauri/windows/hooks.nsh"
+
+        Write-Host "`n✓ All files downloaded successfully!" -ForegroundColor Green
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Verify Downloaded Files
+      run: |
+        Write-Host "Verifying downloaded files..." -ForegroundColor Cyan
 
         $requiredFiles = @(
           "my-tauri-app/src-tauri/sidecars/launcher-x86_64-pc-windows-msvc.exe",
@@ -37,16 +96,15 @@ jobs:
         foreach ($file in $requiredFiles) {
           if (!(Test-Path $file)) {
             $missing += $file
-            Write-Host "❌ Missing: $file" -ForegroundColor Red
+            Write-Host "  ✗ Missing: $file" -ForegroundColor Red
           } else {
-            Write-Host "✓ Found: $file" -ForegroundColor Green
+            $size = [math]::Round((Get-Item $file).Length / 1MB, 2)
+            Write-Host "  ✓ $file ($size MB)" -ForegroundColor Green
           }
         }
 
         if ($missing.Count -gt 0) {
           Write-Host "`n❌ ERROR: Missing required files!" -ForegroundColor Red
-          Write-Host "Please ensure all files are committed before building." -ForegroundColor Yellow
-          Write-Host "`nMissing files:" -ForegroundColor Yellow
           $missing | ForEach-Object { Write-Host "  - $_" }
           exit 1
         }

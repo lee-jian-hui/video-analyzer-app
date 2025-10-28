@@ -220,3 +220,4 @@ __marimo__/
 *.mp4
 *.pt
 ml-models/
+scripts/release-assets
