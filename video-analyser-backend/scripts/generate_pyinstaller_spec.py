@@ -99,4 +99,4 @@ with open(spec_path, "w", encoding="utf-8") as f:
 try:
     print(f"✅ Spec file generated at {spec_path}")
 except UnicodeEncodeError:
-    print(f"Spec file generated at {spec_path}")_
+    print(f"Spec file generated at {spec_path}")
