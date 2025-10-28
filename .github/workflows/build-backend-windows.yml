@@ -1,0 +1,190 @@
+name: Build Python Backend (Windows)
+
+on:
+  workflow_dispatch:  # Allow manual trigger
+  push:
+    branches: [ main, feature/integrate-python-backend ]
+    paths:
+      - 'video-analyser-backend/**'
+      - '.github/workflows/build-backend-windows.yml'
+
+permissions:
+  contents: write  # Required to upload to releases
+
+jobs:
+  build-windows-backend:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install Protocol Buffers Compiler
+      run: |
+        Write-Host "Installing protoc..." -ForegroundColor Cyan
+        choco install protoc -y
+        Write-Host "protoc installed successfully" -ForegroundColor Green
+        protoc --version
+
+    - name: Generate Python gRPC Code
+      working-directory: video-analyser-backend
+      run: |
+        Write-Host "Generating gRPC Python code..." -ForegroundColor Cyan
+
+        # Create protos directory if it doesn't exist
+        New-Item -ItemType Directory -Force -Path protos | Out-Null
+
+        # Generate Python gRPC code from proto files
+        python -m grpc_tools.protoc `
+          -I../protos `
+          --python_out=./protos `
+          --grpc_python_out=./protos `
+          ../protos/video_analyzer.proto
+
+        Write-Host "✓ gRPC code generated" -ForegroundColor Green
+        Get-ChildItem protos
+
+    - name: Install Python Dependencies
+      working-directory: video-analyser-backend
+      run: |
+        Write-Host "Installing Python dependencies..." -ForegroundColor Cyan
+        python -m pip install --upgrade pip
+
+        # Install core dependencies
+        pip install grpcio grpcio-tools protobuf
+        pip install python-dotenv
+        pip install langchain tiktoken
+        pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+        pip install transformers accelerate
+        pip install opencv-python-headless
+        pip install ultralytics
+        pip install openai-whisper
+        pip install google-generativeai
+        pip install numpy pillow
+        pip install pyinstaller
+
+        Write-Host "✓ Dependencies installed" -ForegroundColor Green
+
+    - name: Download ML Models (if needed)
+      working-directory: video-analyser-backend
+      run: |
+        Write-Host "Checking for ML models..." -ForegroundColor Cyan
+
+        # Create ml-models directory
+        New-Item -ItemType Directory -Force -Path ml-models | Out-Null
+
+        # For now, just create the directory structure
+        # Actual model download can be added if needed
+        Write-Host "✓ ML models directory prepared" -ForegroundColor Green
+
+    - name: Build Backend with PyInstaller
+      working-directory: video-analyser-backend
+      run: |
+        Write-Host "Building Windows executable with PyInstaller..." -ForegroundColor Cyan
+        Write-Host "Using spec file: video_analyzer_backend.spec" -ForegroundColor Gray
+
+        # Build using the existing spec file
+        pyinstaller video_analyzer_backend.spec
+
+        Write-Host "✓ Build completed" -ForegroundColor Green
+
+    - name: Verify Windows Executable
+      working-directory: video-analyser-backend
+      run: |
+        Write-Host "Verifying executable..." -ForegroundColor Cyan
+
+        $exePath = "dist\video_analyzer_backend\video_analyzer_backend.exe"
+
+        if (!(Test-Path $exePath)) {
+          Write-Host "✗ Executable not found at: $exePath" -ForegroundColor Red
+          exit 1
+        }
+
+        # Check file size
+        $size = [math]::Round((Get-Item $exePath).Length / 1MB, 2)
+        Write-Host "  Executable size: $size MB" -ForegroundColor Gray
+
+        # Try to get authenticode signature (Windows-specific check)
+        try {
+          $sig = Get-AuthenticodeSignature $exePath
+          Write-Host "  File type: Windows PE executable" -ForegroundColor Gray
+        } catch {
+          Write-Host "  Warning: Could not verify signature" -ForegroundColor Yellow
+        }
+
+        # Test execution (quick startup test)
+        Write-Host "`nTesting execution..." -ForegroundColor Cyan
+        $env:LOG_LEVEL = "DEBUG"
+        $env:GRPC_PORT = "50051"
+
+        # Start process and wait 3 seconds to see if it crashes
+        $proc = Start-Process -FilePath $exePath -PassThru -WindowStyle Hidden
+        Start-Sleep -Seconds 3
+
+        if ($proc.HasExited) {
+          Write-Host "✗ Process exited with code: $($proc.ExitCode)" -ForegroundColor Red
+          exit 1
+        } else {
+          Write-Host "✓ Executable starts successfully" -ForegroundColor Green
+          Stop-Process -Id $proc.Id -Force
+        }
+
+        Write-Host "✓ Verification passed" -ForegroundColor Green
+
+    - name: Package Backend
+      working-directory: video-analyser-backend
+      run: |
+        Write-Host "Packaging backend..." -ForegroundColor Cyan
+
+        # Create zip file from dist directory
+        Compress-Archive -Path "dist\video_analyzer_backend\*" -DestinationPath "video_analyzer_backend.zip" -Force
+
+        # Verify zip contents
+        Write-Host "`nZip contents:" -ForegroundColor Gray
+        Get-ChildItem "dist\video_analyzer_backend" -Recurse |
+          Where-Object { !$_.PSIsContainer } |
+          ForEach-Object {
+            $size = [math]::Round($_.Length / 1MB, 2)
+            Write-Host "  $($_.Name) - ${size} MB"
+          }
+
+        Write-Host "`n✓ Package created: video_analyzer_backend.zip" -ForegroundColor Green
+        $zipSize = [math]::Round((Get-Item "video_analyzer_backend.zip").Length / 1MB, 2)
+        Write-Host "  Total size: $zipSize MB" -ForegroundColor Gray
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-backend
+        path: video-analyser-backend/video_analyzer_backend.zip
+        retention-days: 30
+
+    - name: Upload to large-files Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: large-files
+        name: "Large Binary Assets"
+        body: "Binary files for automated CI/CD builds"
+        files: video-analyser-backend/video_analyzer_backend.zip
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Trigger Windows Installer Build
+      if: github.ref == 'refs/heads/feature/integrate-python-backend'
+      run: |
+        Write-Host "Triggering Windows installer build..." -ForegroundColor Cyan
+
+        gh workflow run build-windows-installer.yml `
+          --ref ${{ github.ref_name }}
+
+        Write-Host "✓ Installer build triggered" -ForegroundColor Green
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
