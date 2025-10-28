@@ -81,30 +81,17 @@ jobs:
           path: video-analyser-backend/protos
 
   # ==============================================================
-  # 3️⃣  MODEL PREP (optional parallel lightweight job)
+  # 3️⃣  MODEL PREP 
+  #    
   # ==============================================================
-  prepare-models:
-    needs: setup-env
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Prepare ML Models directory
-        working-directory: video-analyser-backend
-        run: |
-          Write-Host "Preparing ml-models directory..." -ForegroundColor Cyan
-          New-Item -ItemType Directory -Force -Path ml-models | Out-Null
-          Write-Host "✓ Directory ready" -ForegroundColor Green
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ml-models
-          path: video-analyser-backend/ml-models
+
 
   # ==============================================================
-  # 4️⃣  MAIN BUILD JOB (depends on both gRPC + setup)
+  # 4️⃣  MAIN BUILD JOB (depends on gRPC + setup)
   # ==============================================================
   build-backend:
-    needs: [setup-env, generate-grpc, prepare-models]
+    needs: [setup-env, generate-grpc]
     runs-on: windows-latest
 
     steps:
@@ -116,11 +103,16 @@ jobs:
           name: grpc-protos
           path: video-analyser-backend/protos
 
-      - name: Download ML Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: ml-models
-          path: video-analyser-backend/ml-models
+      - name: Ensure ML Models directory exists
+        working-directory: video-analyser-backend
+        run: |
+          if (!(Test-Path "ml-models")) {
+            Write-Host "Creating placeholder ml-models directory..." -ForegroundColor Cyan
+            New-Item -ItemType Directory -Force -Path ml-models | Out-Null
+            # Add placeholder file to prevent PyInstaller errors
+            Set-Content -Path "ml-models/placeholder.txt" -Value "Placeholder for model weights"
+          }
+          Write-Host "✓ ML models directory ready" -ForegroundColor Green
 
       - name: Install Dependencies
         working-directory: video-analyser-backend
@@ -148,4 +140,31 @@ jobs:
         working-directory: video-analyser-backend
         run: |
           Write-Host "Building Windows executable..." -ForegroundColor Cyan
-          pyinstaller video_anal_
+          pyinstaller video_analyzer_backend.spec
+          Write-Host "✓ Build completed" -ForegroundColor Green
+
+      - name: Verify Build Output
+        working-directory: video-analyser-backend
+        run: |
+          $exePath = "dist\video_analyzer_backend\video_analyzer_backend.exe"
+          if (!(Test-Path $exePath)) {
+            Write-Host "✗ Executable not found at: $exePath" -ForegroundColor Red
+            exit 1
+          }
+          $size = [math]::Round((Get-Item $exePath).Length / 1MB, 2)
+          Write-Host "✓ Verified executable exists ($size MB)" -ForegroundColor Green
+
+      - name: Package Backend
+        working-directory: video-analyser-backend
+        run: |
+          Write-Host "Packaging backend..." -ForegroundColor Cyan
+          Compress-Archive -Path "dist\video_analyzer_backend\*" -DestinationPath "video_analyzer_backend.zip" -Force
+          $zipSize = [math]::Round((Get-Item "video_analyzer_backend.zip").Length / 1MB, 2)
+          Write-Host "✓ Package created (size: $zipSize MB)" -ForegroundColor Green
+
+      - name: Upload Backend Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-backend
+          path: video-analyser-backend/video_analyzer_backend.zip
+          retention-days: 30
