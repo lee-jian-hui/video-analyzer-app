@@ -55,8 +55,6 @@ jobs:
       run: |
         Write-Host "Installing Python dependencies..." -ForegroundColor Cyan
         python -m pip install --upgrade pip
-
-        # Install core dependencies
         pip install grpcio grpcio-tools protobuf
         pip install python-dotenv
         pip install langchain tiktoken
@@ -68,9 +66,20 @@ jobs:
         pip install google-generativeai
         pip install numpy pillow
         pip install pyinstaller
-
         Write-Host "✓ Dependencies installed" -ForegroundColor Green
 
+    - name: Generate Python gRPC Code
+      working-directory: video-analyser-backend
+      run: |
+        Write-Host "Generating gRPC Python code..." -ForegroundColor Cyan
+        New-Item -ItemType Directory -Force -Path protos | Out-Null
+        python -m grpc_tools.protoc `
+          -I../protos `
+          --python_out=./protos `
+          --grpc_python_out=./protos `
+          ../protos/video_analyzer.proto
+        Write-Host "✓ gRPC code generated" -ForegroundColor Green
+        
     - name: Download ML Models (if needed)
       working-directory: video-analyser-backend
       run: |
