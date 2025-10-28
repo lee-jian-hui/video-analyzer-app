@@ -128,6 +128,13 @@ jobs:
       with:
         workspaces: my-tauri-app/src-tauri
 
+    - name: Install Protocol Buffers Compiler
+      run: |
+        Write-Host "Installing protoc..." -ForegroundColor Cyan
+        choco install protoc -y
+        Write-Host "protoc installed successfully" -ForegroundColor Green
+        protoc --version
+
     - name: Install Frontend Dependencies
       working-directory: my-tauri-app
       run: npm ci
