@@ -54,7 +54,7 @@ jobs:
       - name: Generate gRPC Stubs
         working-directory: video-analyser-backend
         run: |
-          python -m grpc_tools.protoc `
+          uv run python -m grpc_tools.protoc `
             -Iprotos `
             --python_out=protos `
             --grpc_python_out=protos `
