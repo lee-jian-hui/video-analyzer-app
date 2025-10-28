@@ -47,7 +47,7 @@
     ],
     "windows": {
       "nsis": {
-        "installerHooks": "windows"
+        "installerHooks": "windows/hooks.nsh"
       }
     }
   }
