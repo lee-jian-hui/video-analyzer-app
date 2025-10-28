@@ -59,7 +59,7 @@ jobs:
 
         Write-Host "`nDownloading Python backend..." -ForegroundColor Cyan
         Download-ReleaseAsset "video_analyzer_backend.zip" "backend.zip"
-        Expand-Archive -Path "backend.zip" -DestinationPath "my-tauri-app/src-tauri/sidecars/video_analyzer_backend" -Force
+        Expand-Archive -Path "backend.zip" -DestinationPath "my-tauri-app/src-tauri/sidecars" -Force
         Remove-Item "backend.zip"
 
         Write-Host "`nDownloading system dependencies..." -ForegroundColor Cyan
