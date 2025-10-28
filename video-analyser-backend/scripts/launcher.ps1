@@ -26,7 +26,7 @@ $TAURI_EXE = Join-Path $InstallDir "Video Analyzer.exe"
 
 $OLLAMA_PORT = 11434
 $BACKEND_PORT = 50051
-$STARTUP_TIMEOUT = 60  # seconds
+$STARTUP_TIMEOUT = 300  # seconds
 
 # ========================================
 # Functions
@@ -166,7 +166,7 @@ if (-not $ollamaProcess) {
 }
 
 # Wait for Ollama to be ready
-if (-not (Wait-ForPort -Port $OLLAMA_PORT -Timeout 30 -ServiceName "Ollama")) {
+if (-not (Wait-ForPort -Port $OLLAMA_PORT -Timeout 60 -ServiceName "Ollama")) {
     Stop-ServiceProcess -ProcessName "ollama"
     $mutex.ReleaseMutex()
     exit 1
@@ -193,7 +193,7 @@ if (-not $backendProcess) {
 }
 
 # Wait for backend to be ready
-if (-not (Wait-ForPort -Port $BACKEND_PORT -Timeout 60 -ServiceName "Backend")) {
+if (-not (Wait-ForPort -Port $BACKEND_PORT -Timeout $STARTUP_TIMEOUT -ServiceName "Backend")) {
     Stop-ServiceProcess -ProcessName "video_analyzer_backend"
     Stop-ServiceProcess -ProcessName "ollama"
     $mutex.ReleaseMutex()
