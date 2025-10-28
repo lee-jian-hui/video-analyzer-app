@@ -32,23 +32,6 @@ jobs:
         Write-Host "protoc installed successfully" -ForegroundColor Green
         protoc --version
 
-    - name: Generate Python gRPC Code
-      working-directory: video-analyser-backend
-      run: |
-        Write-Host "Generating gRPC Python code..." -ForegroundColor Cyan
-
-        # Create protos directory if it doesn't exist
-        New-Item -ItemType Directory -Force -Path protos | Out-Null
-
-        # Generate Python gRPC code from proto files
-        python -m grpc_tools.protoc `
-          -I../protos `
-          --python_out=./protos `
-          --grpc_python_out=./protos `
-          ../protos/video_analyzer.proto
-
-        Write-Host "✓ gRPC code generated" -ForegroundColor Green
-        Get-ChildItem protos
 
     - name: Install Python Dependencies
       working-directory: video-analyser-backend
