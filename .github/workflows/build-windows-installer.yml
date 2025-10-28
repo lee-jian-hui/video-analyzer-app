@@ -63,12 +63,13 @@ jobs:
         Remove-Item "backend.zip"
 
         Write-Host "`nDownloading system dependencies..." -ForegroundColor Cyan
-        Download-ReleaseAsset "vc_redist.x64.exe" "my-tauri-app/src-tauri/resources/vc_redist.x64.exe"
-        Download-ReleaseAsset "dxwebsetup.exe" "my-tauri-app/src-tauri/resources/dxwebsetup.exe"
+        New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/resources/installers" | Out-Null
+        Download-ReleaseAsset "vc_redist.x64.exe" "my-tauri-app/src-tauri/resources/installers/vc_redist.x64.exe"
+        Download-ReleaseAsset "dxwebsetup.exe" "my-tauri-app/src-tauri/resources/installers/dxwebsetup.exe"
 
         Write-Host "`nDownloading Ollama models..." -ForegroundColor Cyan
         Download-ReleaseAsset "ollama-models.zip" "models.zip"
-        Expand-Archive -Path "models.zip" -DestinationPath "my-tauri-app/src-tauri/resources/models" -Force
+        Expand-Archive -Path "models.zip" -DestinationPath "my-tauri-app/src-tauri/resources/ollama_models" -Force
         Remove-Item "models.zip"
 
         Write-Host "`nDownloading NSIS hooks..." -ForegroundColor Cyan
@@ -87,8 +88,8 @@ jobs:
           "my-tauri-app/src-tauri/sidecars/video_analyzer_backend/video_analyzer_backend.exe",
           "my-tauri-app/src-tauri/sidecars/ollama.exe",
           "my-tauri-app/src-tauri/sidecars/ffmpeg.exe",
-          "my-tauri-app/src-tauri/resources/vc_redist.x64.exe",
-          "my-tauri-app/src-tauri/resources/dxwebsetup.exe",
+          "my-tauri-app/src-tauri/resources/installers/vc_redist.x64.exe",
+          "my-tauri-app/src-tauri/resources/installers/dxwebsetup.exe",
           "my-tauri-app/src-tauri/windows/hooks.nsh"
         )
 
