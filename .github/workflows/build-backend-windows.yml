@@ -68,6 +68,15 @@ jobs:
         pip install pyinstaller
         Write-Host "✓ Dependencies installed" -ForegroundColor Green
 
+    - name: Verify grpcio-tools
+      run: |
+        python -m pip show grpcio-tools || (
+          Write-Host "grpcio-tools not installed, installing now..." -ForegroundColor Yellow
+          pip install grpcio-tools
+        )
+        python -c "import grpc_tools; print('✓ grpc_tools is available')"
+
+
     - name: Generate Python gRPC Code
       working-directory: video-analyser-backend
       run: |
