@@ -101,6 +101,15 @@ jobs:
         working-directory: my-tauri-app
         run: npm ci
 
+      - name: Install Protocol Buffers Compiler
+        run: |
+          Write-Host "Installing protoc..." -ForegroundColor Cyan
+          choco install protoc -y
+          $protocPath = "C:\ProgramData\chocolatey\lib\protoc\tools\bin\protoc.exe"
+          echo "PROTOC=$protocPath" >> $env:GITHUB_ENV
+          echo "PATH=$env:PATH;$(Split-Path $protocPath)" >> $env:GITHUB_ENV
+          protoc --version
+
       - name: Build Tauri Installer
         working-directory: my-tauri-app
         run: npm run tauri build
