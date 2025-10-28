@@ -229,14 +229,14 @@ jobs:
         shell: pwsh
         run: |
           choco install nsis -y
-          try {
-            choco install microsoft-edgewebview2-runtime -y --source="'https://community.chocolatey.org/api/v2/;https://www.nuget.org/api/v2/'"
-          } catch {
-            Write-Host "WebView2 failed via Chocolatey — downloading from Microsoft directly."
-            $webview2 = "$env:TEMP\MicrosoftEdgeWebView2Setup.exe"
-            Invoke-WebRequest "https://go.microsoft.com/fwlink/p/?LinkId=2124703" -OutFile $webview2
-            Start-Process -FilePath $webview2 -ArgumentList "/install","/quiet","/norestart" -Wait
-          }
+          # try {
+          #   choco install microsoft-edgewebview2-runtime -y --source="'https://community.chocolatey.org/api/v2/;https://www.nuget.org/api/v2/'"
+          # } catch {
+          #   Write-Host "WebView2 failed via Chocolatey — downloading from Microsoft directly."
+          #   $webview2 = "$env:TEMP\MicrosoftEdgeWebView2Setup.exe"
+          #   Invoke-WebRequest "https://go.microsoft.com/fwlink/p/?LinkId=2124703" -OutFile $webview2
+          #   Start-Process -FilePath $webview2 -ArgumentList "/install","/quiet","/norestart" -Wait
+          # }
 
       - name: Verify staged paths
         shell: pwsh
