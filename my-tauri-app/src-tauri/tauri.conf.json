@@ -21,9 +21,7 @@
         "center": true
       }
     ],
-    "security": {
-      "csp": null
-    }
+    "security": { "csp": null }
   },
   "bundle": {
     "active": true,
@@ -36,14 +34,14 @@
       "icons/icon.ico"
     ],
     "externalBin": [
-      "sidecars/launcher"
+      "sidecars/launcher.exe",
+      "sidecars/ollama.exe",
+      "sidecars/ffmpeg.exe",
+      "sidecars/video_analyzer_backend/video_analyzer_backend.exe"
     ],
     "resources": [
       "resources/installers/*",
-      "resources/ollama_models/**/*",
-      "sidecars/ollama.exe",
-      "sidecars/ffmpeg.exe",
-      "sidecars/video_analyzer_backend/**/*"
+      "resources/ollama_models/**/*"
     ],
     "windows": {
       "nsis": {
