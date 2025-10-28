@@ -110,6 +110,24 @@ jobs:
           echo "PATH=$env:PATH;$(Split-Path $protocPath)" >> $env:GITHUB_ENV
           protoc --version
 
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: my-tauri-app/src-tauri
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: my-tauri-app/package-lock.json
+
+
       - name: Build Tauri Installer
         working-directory: my-tauri-app
         run: npm run tauri build
