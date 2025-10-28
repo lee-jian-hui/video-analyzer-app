@@ -50,24 +50,23 @@ Cargo.lock
 my-tauri-app/src-tauri/target/
 my-tauri-app/dist/
 
-# Build artifacts
+# Build artifacts (temporary)
 video-analyser-backend/dist/
 video-analyser-backend/build/
 *.spec
 
-# Downloaded dependencies (rebuilt by CI)
+# PyInstaller temporary files
 video-analyser-backend/scripts/launcher.exe
-my-tauri-app/src-tauri/resources/vc_redist.x64.exe
-my-tauri-app/src-tauri/resources/dxwebsetup.exe
-my-tauri-app/src-tauri/resources/ollama.exe
-my-tauri-app/src-tauri/sidecars/ffmpeg.exe
-my-tauri-app/src-tauri/sidecars/ollama.exe
-my-tauri-app/src-tauri/sidecars/launcher*.exe
-my-tauri-app/src-tauri/sidecars/video_analyzer_backend/
 
-# Large model files (consider using Git LFS or storing separately)
-# my-tauri-app/src-tauri/resources/models/
-# video-analyser-backend/ml-models/
+# Note: The following files SHOULD be committed (using Git LFS):
+# - my-tauri-app/src-tauri/sidecars/launcher-x86_64-pc-windows-msvc.exe
+# - my-tauri-app/src-tauri/sidecars/video_analyzer_backend/**/*
+# - my-tauri-app/src-tauri/sidecars/ollama.exe
+# - my-tauri-app/src-tauri/sidecars/ffmpeg.exe
+# - my-tauri-app/src-tauri/resources/vc_redist.x64.exe
+# - my-tauri-app/src-tauri/resources/dxwebsetup.exe
+# - my-tauri-app/src-tauri/resources/models/**/*
+# - my-tauri-app/src-tauri/windows/hooks.nsh
 
 # OS
 .DS_Store
