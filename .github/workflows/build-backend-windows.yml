@@ -60,10 +60,10 @@ jobs:
         run: |
           Write-Host "Generating gRPC Python code..." -ForegroundColor Cyan
           python -m grpc_tools.protoc `
-            -I../protos `
-            --python_out=./protos `
-            --grpc_python_out=./protos `
-            ../protos/video_analyzer.proto
+            -Iprotos `
+            --python_out=protos `
+            --grpc_python_out=protos `
+            protos/video_analyzer.proto
           Write-Host "✓ gRPC code generated" -ForegroundColor Green
 
       - name: Upload Generated gRPC Code
