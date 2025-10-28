@@ -30,6 +30,14 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+          
+      - name: Ensure pip cache directory exists
+        run: |
+          $cachePath = "$env:LOCALAPPDATA\pip\cache"
+          if (!(Test-Path $cachePath)) {
+            Write-Host "Creating missing pip cache directory..."
+            New-Item -ItemType Directory -Force -Path $cachePath | Out-Null
+          }
 
       - name: Install Protocol Buffers Compiler
         run: |
