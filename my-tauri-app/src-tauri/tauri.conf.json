@@ -34,7 +34,8 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "resources/**/*"
+      "resources/ollama_models/**/*",
+      "sidecars/**/*"
     ],
     "windows": {
       "nsis": {
