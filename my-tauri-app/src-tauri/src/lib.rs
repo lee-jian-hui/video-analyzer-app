@@ -8,6 +8,11 @@ use tauri_plugin_shell::{ShellExt, process::CommandEvent};
 use tauri::Manager;
 mod config;
 use config::{AppConfig, GrpcConfig};
+use tauri::Emitter;
+use tokio::net::TcpStream;
+use tokio::time::{sleep, Duration};
+use tauri_plugin_shell::process::CommandChild;
+use tauri_plugin_shell::process::Command;
 
 pub mod video_analyzer {
     tonic::include_proto!("video_analyzer");
@@ -402,19 +407,25 @@ async fn wait_for_port(port: u16, retries: usize, delay_ms: u64) -> bool {
 }
 
 /// Start a sidecar and log the result
-async fn start_sidecar(name: &str, args: &[&str]) -> Result<CommandChild, String> {
-    match Command::new_sidecar(name) {
-        Ok(mut cmd) => {
-            let child = cmd.args(args).spawn()
-                .map_err(|e| format!("Failed to spawn {name}: {e}"))?;
-            println!("🟢 Started sidecar: {name}");
-            Ok(child)
-        }
-        Err(e) => Err(format!("Sidecar {name} not found: {e}")),
-    }
+// ✅ Corrected start_sidecar
+async fn start_sidecar(
+    app: &tauri::AppHandle,
+    name: &str,
+    args: &[&str],
+) -> Result<(tauri::async_runtime::Receiver<CommandEvent>, CommandChild), String> {
+    let sidecar = app
+        .shell()
+        .sidecar(name)
+        .map_err(|e| format!("Sidecar '{name}' not found: {e}"))?;
+
+    let (rx, child) = sidecar
+        .args(args)
+        .spawn()
+        .map_err(|e| format!("Failed to spawn sidecar '{name}': {e}"))?;
+
+    println!("🟢 Started sidecar: {name}");
+    Ok((rx, child))
 }
-
-
 
 
 #[tauri::command]
@@ -425,8 +436,8 @@ async fn start_all_services(app: tauri::AppHandle, window: tauri::Window) -> Res
     use tokio::time::{sleep, Duration};
 
     // 1️⃣ Build paths
-    let resource_dir = app.path_resolver().resource_dir().ok_or("Missing resource dir")?;
-    let ollama_dir = resource_dir.join("ollama_models");
+    let resource_dir = app.path().resource_dir();
+    let ollama_dir = resource_dir?.join("ollama_models");
 
     // 2️⃣ Create env overrides
     let mut envs = HashMap::new();
