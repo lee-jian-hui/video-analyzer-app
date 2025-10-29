@@ -437,7 +437,7 @@ async fn start_all_services(app: tauri::AppHandle, window: tauri::Window) -> Res
 
     // 1️⃣ Build paths
     let resource_dir = app.path().resource_dir();
-    let ollama_dir = resource_dir?.join("ollama_models");
+    let ollama_dir = resource_dir.map_err(|e| e.to_string())?.join("ollama_models");
 
     // 2️⃣ Create env overrides
     let mut envs = HashMap::new();
