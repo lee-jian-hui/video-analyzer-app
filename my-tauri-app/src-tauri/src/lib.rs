@@ -26,7 +26,7 @@ use video_analyzer::{
 
 async fn connect_client() -> Result<VideoAnalyzerServiceClient<Channel>, String> {
     let server_url = GrpcConfig::server_url();
-    debug!("Connecting to gRPC server at {}", server_url);
+    info!("Connecting to gRPC server at {}", server_url);
     VideoAnalyzerServiceClient::connect(server_url.clone())
         .await
         .map_err(|e| format!("Failed to connect to gRPC server at {}: {}", server_url, e))
@@ -127,7 +127,7 @@ async fn upload_video(filename: String, video_data: Vec<u8>) -> Result<Value, St
         .map_err(|e| format!("gRPC call failed: {}", e))?;
 
     let inner = response.into_inner();
-    debug!(
+    info!(
         "upload_video response: success={}, file_id={}",
         inner.success,
         inner.file_id
@@ -191,7 +191,7 @@ async fn upload_video_from_path(file_path: String) -> Result<Value, String> {
         .map_err(|e| format!("gRPC call failed: {}", e))?;
 
     let inner = response.into_inner();
-    debug!(
+    info!(
         "upload_video_from_path response: success={}, file_id={}",
         inner.success,
         inner.file_id
@@ -259,7 +259,7 @@ async fn get_last_session() -> Result<Value, String> {
         .map_err(|e| format!("gRPC call failed: {}", e))?;
 
     let inner = response.into_inner();
-    debug!(
+    info!(
         "get_last_session response: has_session={}, video_id={:?}, video_name={:?}",
         inner.has_session, inner.video_id, inner.video_name
     );
@@ -291,7 +291,7 @@ async fn get_chat_history(
     let inner = response.into_inner();
     let summary_len = inner.conversation_summary.len();
     let msgs_len = inner.recent_messages.len();
-    debug!(
+    info!(
         "get_chat_history response: video_id={:?}, summary_len={}, recent_messages_len={}",
         inner.video_id, summary_len, msgs_len
     );
@@ -333,7 +333,7 @@ async fn resume_session(video_id: String) -> Result<Value, String> {
         .map_err(|e| format!("gRPC call failed: {}", e))?;
 
     let inner = response.into_inner();
-    debug!(
+    info!(
         "resume_session response: success={}, video_id={:?}, video_name={:?}",
         inner.success, inner.video_id, inner.video_name
     );
@@ -354,7 +354,7 @@ async fn clear_chat_history(video_id: String) -> Result<Value, String> {
         .map_err(|e| format!("gRPC call failed: {}", e))?;
 
     let inner = response.into_inner();
-    debug!("clear_chat_history response: success={}, message={}", inner.success, inner.message);
+    info!("clear_chat_history response: success={}, message={}", inner.success, inner.message);
     serde_json::to_value(inner)
         .map_err(|e| format!("Failed to serialize response: {}", e))
 }
@@ -362,7 +362,7 @@ async fn clear_chat_history(video_id: String) -> Result<Value, String> {
 #[tauri::command(rename_all = "snake_case")]
 async fn check_backend_ready() -> Result<Value, String> {
     use tokio::time::{timeout, Duration};
-    debug!("check_backend_ready: attempting ping via get_last_session");
+    info!("check_backend_ready: attempting ping via get_last_session");
     let mut client = match connect_client().await {
         Ok(c) => c,
         Err(e) => return Ok(serde_json::json!({ "ready": false, "message": e })),
