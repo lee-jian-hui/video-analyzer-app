@@ -34,7 +34,8 @@
 
 ## Pre-requisites
 - mp4 files for testing, e.g. https://file-examples.com/index.php/sample-video-files/sample-mp4-files/
-
+- http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4
+- https://gist.github.com/jsturgis/3b19447b304616f18657
 
 ## Startup commands (local)
 
