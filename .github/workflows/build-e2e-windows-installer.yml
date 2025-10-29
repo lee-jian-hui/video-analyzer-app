@@ -99,7 +99,8 @@ jobs:
         shell: bash
         run: |
           pip --version
-          pip install 
+          pip install grpcio
+          pip install grpcio-tools
             
 
 
@@ -120,6 +121,7 @@ jobs:
             --add-data "templates;templates" `
             --add-data "protos;protos" `
             --add-data "ml-models;ml-models" `
+
             --collect-all "grpc" `
             --collect-all "grpcio" `
             --collect-all "grpc_tools" `
