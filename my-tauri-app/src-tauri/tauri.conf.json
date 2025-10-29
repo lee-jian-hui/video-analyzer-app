@@ -34,8 +34,7 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "resources/installers/*",
-      "resources/ollama_models/**/*"
+      "resources/**/*"
     ],
     "windows": {
       "nsis": {

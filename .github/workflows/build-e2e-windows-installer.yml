@@ -99,11 +99,31 @@ jobs:
       - name: Install NPM dependencies
         working-directory: my-tauri-app
         run: npm ci
-
+        
+      # --- Step 9. Install protoc for Rust gRPC build
+      - name: Install protoc (Protocol Buffers)
+        shell: pwsh
+        run: |
+          choco install protoc --version=21.12 -y
+          $env:Path += ";C:\ProgramData\chocolatey\lib\protoc\tools\bin"
+          protoc --version
+          
       # --- Step 9. Build full Tauri Windows installer
       - name: Build Tauri installer
         working-directory: my-tauri-app
         run: npm run tauri build
+
+
+      - name: Debug file structure (depth 3)
+        shell: pwsh
+        run: |
+          Write-Host "Current directory: $(Get-Location)"
+          Write-Host "`n=== Directory Tree (Depth: 3) ==="
+          Get-ChildItem -Recurse -Depth 3 | ForEach-Object {
+            $indent = '  ' * ($_.FullName.Split('\').Count - (Get-Location).Path.Split('\').Count)
+            Write-Host "$indent- $($_.Name)"
+          }
+
 
       # --- Step 10. Upload installer as artifact
       - name: Upload built installer
