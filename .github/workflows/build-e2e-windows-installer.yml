@@ -47,7 +47,7 @@ jobs:
       # --- Step 5. Fetch Ollama binary
       - name: Download Ollama EXE from release
         run: |
-          curl -L -o ollama.exe https://github.com/ollama/ollama/releases/latest/download/ollama-windows-amd64.exe
+          curl -L -o ollama.exe https://github.com/lee-jian-hui/video-analyzer-app/releases/download/large-files/ollama.exe
           mkdir -p src-tauri/sidecars
           move ollama.exe src-tauri/sidecars/
 
