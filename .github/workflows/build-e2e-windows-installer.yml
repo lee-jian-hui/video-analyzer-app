@@ -34,10 +34,16 @@ jobs:
         run: pip install pyinstaller
 
       # --- Step 4. Build Python backend EXE
-      - name: Build Python gRPC backend
-        working-directory: video-analyzer-app/video-analyser-backend
-        run: |
-          run: pyinstaller --name video_analyzer_backend --onedir --noconsole --add-data "templates;templates" --add-data "protos;protos" server.py
+      - name: Build backend with PyInstaller
+        working-directory: video-analyser-backend
+        run: >
+          pyinstaller
+          --name video_analyzer_backend
+          --onedir
+          --noconsole
+          --add-data "templates;templates"
+          --add-data "protos;protos"
+          server.py
 
       # --- Step 5. Fetch Ollama binary
       - name: Download Ollama EXE from release
