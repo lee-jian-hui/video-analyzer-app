@@ -38,34 +38,36 @@ jobs:
       # --- Step 4. Build Python backend EXE
       - name: Build backend with PyInstaller
         working-directory: video-analyser-backend
-        run: >
+        shell: pwsh
+        run: |
           Write-Host "=== Building Python backend ==="
           Get-Location
           Get-ChildItem
 
-          pyinstaller
-            --name video_analyzer_backend
-            --onedir
-            --noconsole
-            --add-data "templates;templates"
-            --add-data "protos;protos"
-            --hidden-import grpc
-            --hidden-import grpc._cython
-            --hidden-import grpc._cython.cygrpc
-            --hidden-import cv2
-            --hidden-import torch
-            --hidden-import torchvision
-            --hidden-import transformers
-            --hidden-import transformers.models
-            --hidden-import moviepy
-            --hidden-import moviepy.editor
-            --hidden-import pytesseract
-            --hidden-import langchain
-            --hidden-import langchain_community
-            --hidden-import langchain_core
-            --hidden-import langchain_ollama
-            --hidden-import langgraph
-            --hidden-import ollama
+          & pyinstaller `
+            --name "video_analyzer_backend" `
+            --onedir `
+            --noconsole `
+            --add-data "templates;templates" `
+            --add-data "protos;protos" `
+            --hidden-import "grpc" `
+            --hidden-import "grpc._cython" `
+            --hidden-import "grpc._cython.cygrpc" `
+            --hidden-import "cv2" `
+            --hidden-import "torch" `
+            --hidden-import "torchvision" `
+            --hidden-import "transformers" `
+            --hidden-import "transformers.models" `
+            --hidden-import "moviepy" `
+            --hidden-import "moviepy.editor" `
+            --hidden-import "pytesseract" `
+            --hidden-import "langchain" `
+            --hidden-import "langchain_community" `
+            --hidden-import "langchain_core" `
+            --hidden-import "langchain_ollama" `
+            --hidden-import "langchain_google_genai" `
+            --hidden-import "langgraph" `
+            --hidden-import "ollama" `
             server.py
 
 
