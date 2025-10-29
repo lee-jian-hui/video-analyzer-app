@@ -184,7 +184,7 @@ jobs:
                 Write-Host "✅ Downloaded $out ($([math]::Round($size,2)) MB)"
               }
             } catch {
-                Write-Host "⚠️ Error downloading $name: $($_)" -ForegroundColor Yellow
+              Write-Host ("⚠️ Error downloading " + $name + ": " + $_) -ForegroundColor Yellow
             }
           }
 
