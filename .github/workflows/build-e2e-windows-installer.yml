@@ -104,33 +104,29 @@ jobs:
           Expand-Archive -Force "ollama_models.zip" "my-tauri-app/src-tauri/resources/ollama_models"
 
 
-      # Copy backend EXE into Tauri sidecars
       - name: Copy backend to Tauri sidecars
         shell: pwsh
         run: |
-          Write-Host "=== Copying backend to Tauri sidecars ==="
+          Write-Host "=== Copying backend (onedir build) to Tauri sidecars ==="
           $src = "video-analyser-backend/dist/video_analyzer_backend"
-          $dst = "my-tauri-app/src-tauri/sidecars/video_analyzer_backend"
+          $dstRoot = "my-tauri-app/src-tauri/sidecars"
+          $dst = "$dstRoot/video_analyzer_backend"
 
-          # Ensure target directory exists
+          # Ensure directories exist
           New-Item -ItemType Directory -Force -Path $dst | Out-Null
 
-          # Copy built backend EXE + dependencies
+          # Copy the entire folder including python310.dll, library.zip, etc.
           Copy-Item -Recurse -Force "$src/*" $dst
 
-          # Rename the main EXE so Tauri detects it correctly
+          # Rename ONLY the main exe inside the copied directory
           $backendExe = Join-Path $dst "video_analyzer_backend.exe"
           if (Test-Path $backendExe) {
             Rename-Item -Force $backendExe "video_analyzer_backend-${{ env.PLATFORM_SUFFIX }}.exe"
           }
 
-          Write-Host "✅ Backend successfully copied and renamed"
+          Write-Host "✅ Backend (onedir) fully copied with dependencies"
           Get-ChildItem -Recurse $dst
 
-      # Install frontend dependencies
-      - name: Install NPM dependencies
-        working-directory: my-tauri-app
-        run: npm ci
 
       # Install protoc for Rust gRPC build
       - name: Install protoc (Protocol Buffers)
