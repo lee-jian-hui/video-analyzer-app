@@ -63,7 +63,7 @@ class Config:
 
     # Ollama (Served Local) Configuration
     OLLAMA_HOST = "127.0.0.1"
-    OLLAMA_PORT = 11435
+    OLLAMA_PORT = 11434
 
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", f"http://{OLLAMA_HOST}:{OLLAMA_PORT}")
     OLLAMA_FUNCTION_CALLING_MODEL: str = os.getenv("OLLAMA_FUNCTION_CALLING_MODEL", "qwen3:0.6b")
