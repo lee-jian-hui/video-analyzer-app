@@ -24,7 +24,7 @@ jobs:
 
       # 3️⃣ Install uv and sync dependencies
       - name: Install dependencies
-        working-directory: ./video-analyzer-app/video-analyser-backend
+        working-directory: video-analyser-backend
         run: |
           python -m pip install --upgrade pip
           pip install uv
@@ -34,7 +34,7 @@ jobs:
       - name: Build backend with PyInstaller (Windows)
         uses: JackMcKew/pyinstaller-action-windows@main
         with:
-          path: video-analyzer-app/video-analyser-backend
+          path: video-analyser-backend
           spec: server.py
           onefile: false
           noconsole: true
