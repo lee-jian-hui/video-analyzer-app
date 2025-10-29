@@ -40,7 +40,6 @@ jobs:
           pyinstaller --name video_analyzer_backend --onedir --noconsole
           --add-data "templates;templates"
           --add-data "protos;protos"
-          --add-data ".env;."
           --add-data "ml-models;ml-models"
           --hidden-import langchain
           --hidden-import tiktoken
