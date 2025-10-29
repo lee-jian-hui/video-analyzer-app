@@ -9,6 +9,8 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    env:
+      PLATFORM_SUFFIX: x86_64-pc-windows-msvc
 
     steps:
       # --- Step 1. Checkout repo
@@ -66,9 +68,9 @@ jobs:
           Invoke-WebRequest -Uri $url -OutFile "ffmpeg.exe"
 
           New-Item -ItemType Directory -Force -Path $sidecarDir | Out-Null
-          Move-Item -Force "ffmpeg.exe" "$sidecarDir/ffmpeg-x86_64-pc-windows-msvc.exe"
+          Move-Item -Force "ffmpeg.exe" "$sidecarDir/ffmpeg-${{ env.PLATFORM_SUFFIX }}.exe"
 
-          Write-Host "✅ FFmpeg placed at $sidecarDir/ffmpeg-x86_64-pc-windows-msvc.exe"
+          Write-Host "✅ FFmpeg placed at $sidecarDir/ffmpeg-${{ env.PLATFORM_SUFFIX }}.exe"
           Get-ChildItem $sidecarDir
 
 
@@ -88,9 +90,9 @@ jobs:
           New-Item -ItemType Directory -Force -Path $sidecarDir | Out-Null
 
           # Move and rename to match Tauri’s expected pattern
-          Move-Item -Force "ollama.exe" "$sidecarDir/ollama-x86_64-pc-windows-msvc.exe"
+          Move-Item -Force "ollama.exe" "$sidecarDir/ollama-${{ env.PLATFORM_SUFFIX }}.exe"
 
-          Write-Host "✅ Ollama binary placed at $sidecarDir/ollama-x86_64-pc-windows-msvc.exe"
+          Write-Host "✅ Ollama binary placed at $sidecarDir/ollama-${{ env.PLATFORM_SUFFIX }}.exe"
           Get-ChildItem $sidecarDir
 
 
@@ -119,7 +121,7 @@ jobs:
           # Rename the main EXE so Tauri detects it correctly
           $backendExe = Join-Path $dst "video_analyzer_backend.exe"
           if (Test-Path $backendExe) {
-            Rename-Item -Force $backendExe "video_analyzer_backend-x86_64-pc-windows-msvc.exe"
+            Rename-Item -Force $backendExe "video_analyzer_backend-${{ env.PLATFORM_SUFFIX }}.exe"
           }
 
           Write-Host "✅ Backend successfully copied and renamed"
@@ -173,3 +175,15 @@ jobs:
         with:
           name: video-analyzer-windows-installer
           path: my-tauri-app/src-tauri/target/release/bundle/**
+
+
+      # --- FINAL: Publish installer to GitHub Release
+      - name: Upload installer to GitHub Release (prod-latest)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: prod-latest
+          files: |
+            my-tauri-app/src-tauri/target/release/bundle/**/*.exe
+            my-tauri-app/src-tauri/target/release/bundle/**/*.msi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
