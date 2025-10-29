@@ -30,7 +30,7 @@
 ![alt text](images/pdf-output.png)
 
 #### Low Confidence Detection back t- human in the loop
-![alt text](iamges/human.png)
+![alt text](images/human.png)
 
 ## Pre-requisites
 - mp4 files for testing, e.g. https://file-examples.com/index.php/sample-video-files/sample-mp4-files/
