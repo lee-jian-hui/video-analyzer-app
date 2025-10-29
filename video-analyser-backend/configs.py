@@ -16,25 +16,26 @@ class Config:
         """Get appropriate ML model cache directory based on environment"""
         import sys
         from pathlib import Path
+        return os.getenv("ML_MODEL_CACHE_DIR", "./ml-models")
+        
+        # # Check if we're in a bundled/production environment
+        # if getattr(sys, 'frozen', False) or os.getenv("TAURI_ENV"):
+        #     # Bundled app - use bundled models directory (read-only)
+        #     if getattr(sys, 'frozen', False):
+        #         # PyInstaller bundle
+        #         bundle_dir = Path(sys._MEIPASS) / "ml-models"
+        #     else:
+        #         # Tauri bundle - models are in resources directory
+        #         # Tauri puts resources next to the executable
+        #         exe_dir = Path(os.path.dirname(sys.executable))
+        #         bundle_dir = exe_dir / "ml-models"
 
-        # Check if we're in a bundled/production environment
-        if getattr(sys, 'frozen', False) or os.getenv("TAURI_ENV"):
-            # Bundled app - use bundled models directory (read-only)
-            if getattr(sys, 'frozen', False):
-                # PyInstaller bundle
-                bundle_dir = Path(sys._MEIPASS) / "ml-models"
-            else:
-                # Tauri bundle - models are in resources directory
-                # Tauri puts resources next to the executable
-                exe_dir = Path(os.path.dirname(sys.executable))
-                bundle_dir = exe_dir / "ml-models"
+        #     print(f"Using bundled models at {str(bundle_dir)}")
+        #     return str(bundle_dir)
 
-            print(f"Using bundled models at {str(bundle_dir)}")
-            return str(bundle_dir)
-
-        else:
-            # pment - use local directory
-            return os.getenv("ML_MODEL_CACHE_DIR", "./ml-models")
+        # else:
+        #     # pment - use local directory
+        #     return os.getenv("ML_MODEL_CACHE_DIR", "./ml-models")
 
     EXECUTION_MODE = "single"
     ML_MODEL_CACHE_DIR: str = get_ml_model_cache_dir()

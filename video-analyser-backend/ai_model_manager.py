@@ -116,7 +116,7 @@ class AIModelManager:
         results[AIModelType.OBJECT_DETECTION] = self._initialize_yolo()
 
         # Initialize LLM based on config
-        results[AIModelType.LLM] = self._initialize_local_llm()
+        # results[AIModelType.LLM] = self._initialize_local_llm()
 
         return results
 
