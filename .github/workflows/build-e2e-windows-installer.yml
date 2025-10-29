@@ -40,7 +40,7 @@ jobs:
           echo "Current path:"
           pwd
           dir
-          
+
           pyinstaller
           --name video_analyzer_backend
           --onedir
@@ -56,12 +56,11 @@ jobs:
           mkdir -p src-tauri/sidecars
           move ollama.exe src-tauri/sidecars/
 
-      # --- Step 6. Fetch model pack (large files)
-      - name: Download Ollama models from release
+      - name: Download Ollama models
         run: |
+          curl -L -o ollama_models.zip https://github.com/lee-jian-hui/video-analyzer-app/releases/download/large-files/ollama_models.zip
           mkdir -p src-tauri/resources/ollama_models
-          curl -L -o ollama.exe https://github.com/lee-jian-hui/video-analyzer-app/releases/download/large-files/ollama-models.zip
-          tar -xf ollama_models.zip -C src-tauri/resources/ollama_models
+          powershell -Command "Expand-Archive -Force 'ollama_models.zip' 'src-tauri/resources/ollama_models'"
 
       # --- Step 7. Copy backend EXE into Tauri sidecars
       - name: Move backend build output
