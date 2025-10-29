@@ -11,8 +11,9 @@ use config::{AppConfig, GrpcConfig};
 use tauri::Emitter;
 use tokio::net::TcpStream;
 use tokio::time::{sleep, Duration};
-use tauri_plugin_shell::process::CommandChild;
-use tauri_plugin_shell::process::Command;
+use tauri_plugin_shell::process::{Command, CommandChild, CommandEvent};
+use tauri_plugin_shell::ShellExt;
+use std::collections::HashMap;
 
 pub mod video_analyzer {
     tonic::include_proto!("video_analyzer");
@@ -430,20 +431,16 @@ async fn start_sidecar(
 
 #[tauri::command]
 async fn start_all_services(app: tauri::AppHandle, window: tauri::Window) -> Result<(), String> {
-    use tauri_plugin_shell::{ShellExt, process::CommandEvent};
-    use std::collections::HashMap;
-    use tauri::Manager;
-    use tokio::time::{sleep, Duration};
 
     // 1️⃣ Build paths
     let resource_dir = app.path().resource_dir();
     let ollama_dir = resource_dir.map_err(|e| e.to_string())?.join("ollama_models");
 
     // 2️⃣ Create env overrides
-    let mut envs = HashMap::new();
-    envs.insert("OLLAMA_MODELS".into(), ollama_dir.to_string_lossy().to_string());
-    envs.insert("OLLAMA_PORT".into(), "11435".into()); // custom port, avoid conflict
-    envs.insert("OLLAMA_HOST".into(), "127.0.0.1".into());
+    let mut envs: HashMap<String, String> = HashMap::new();
+    envs.insert("OLLAMA_MODELS".to_string(), ollama_dir.to_string_lossy().to_string());
+    envs.insert("OLLAMA_PORT".to_string(), "11435".to_string());
+    envs.insert("OLLAMA_HOST".to_string(), "127.0.0.1".to_string());
 
     // 3️⃣ Spawn Ollama server with explicit model path
     let ollama_cmd = app
