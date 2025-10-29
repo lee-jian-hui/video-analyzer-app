@@ -26,15 +26,15 @@ echo ""
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 
-echo -e "${CYAN}[1/6] Copying launcher...${NC}"
-if [ -f "$TAURI_DIR/sidecars/launcher-x86_64-pc-windows-msvc.exe" ]; then
-  cp "$TAURI_DIR/sidecars/launcher-x86_64-pc-windows-msvc.exe" "$OUTPUT_DIR/"
-  echo -e "${GREEN}✓ Launcher copied${NC}"
-else
-  echo -e "${RED}✗ Launcher not found${NC}"
-  echo "Please build the launcher first: ./build-launcher-wsl.sh"
-  exit 1
-fi
+# echo -e "${CYAN}[1/6] Copying launcher...${NC}"
+# if [ -f "$TAURI_DIR/sidecars/launcher-x86_64-pc-windows-msvc.exe" ]; then
+#   cp "$TAURI_DIR/sidecars/launcher-x86_64-pc-windows-msvc.exe" "$OUTPUT_DIR/"
+#   echo -e "${GREEN}✓ Launcher copied${NC}"
+# else
+#   echo -e "${RED}✗ Launcher not found${NC}"
+#   echo "Please build the launcher first: ./build-launcher-wsl.sh"
+#   exit 1
+# fi
 
 echo ""
 echo -e "${CYAN}[2/6] Copying Ollama...${NC}"

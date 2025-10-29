@@ -22,6 +22,20 @@ function App() {
   const [backendReady, setBackendReady] = useState(false);
   const [initialConversation, setInitialConversation] = useState<ConversationEntry[] | undefined>(undefined);
 
+
+
+  // Boot backend and Ollama via Tauri sidecars
+  useEffect(() => {
+    console.log("[Init] Launching sidecars (backend + ollama) via Tauri...");
+    invoke("start_all_services")
+      .then(() => {
+        console.log("✅ Sidecars launched successfully");
+      })
+      .catch((err) => {
+        console.error("❌ Failed to start services:", err);
+      });
+  }, []);
+
   // No local persistence or action history
 
   // Do not persist active video locally; derive it from backend last session instead

@@ -53,16 +53,19 @@ class Config:
     # Model Configuration - Unified Backend System
     # MODEL_BACKEND options: "ollama", "local", "remote"
     # Separate backends for function calling and chat
-    FUNCTION_CALLING_BACKEND: str = os.getenv("FUNCTION_CALLING_BACKEND", "remote").lower()
-    CHAT_BACKEND: str = os.getenv("CHAT_BACKEND", "remote").lower()
+    FUNCTION_CALLING_BACKEND: str = os.getenv("FUNCTION_CALLING_BACKEND", "ollama").lower()
+    CHAT_BACKEND: str = os.getenv("CHAT_BACKEND", "ollama").lower()
 
     # Remote (Cloud API) Configuration
-    REMOTE_PROVIDER: str = os.getenv("REMOTE_PROVIDER", "google_genai")
-    REMOTE_MODEL_NAME: str = os.getenv("REMOTE_MODEL_NAME", "gemini-2.0-flash-lite")
+    REMOTE_PROVIDER: str = os.getenv("REMOTE_PROVIDER", "")
+    REMOTE_MODEL_NAME: str = os.getenv("REMOTE_MODEL_NAME", "")
     REMOTE_TEMPERATURE: float = float(os.getenv("REMOTE_TEMPERATURE", "0.0"))
 
     # Ollama (Served Local) Configuration
-    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    OLLAMA_HOST = "127.0.0.1"
+    OLLAMA_PORT = 11435
+
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", f"http://{OLLAMA_HOST}:{OLLAMA_PORT}")
     OLLAMA_FUNCTION_CALLING_MODEL: str = os.getenv("OLLAMA_FUNCTION_CALLING_MODEL", "qwen3:0.6b")
     OLLAMA_CHAT_MODEL: str = os.getenv("OLLAMA_CHAT_MODEL", "qwen3:0.6b")
     OLLAMA_TEMPERATURE: float = float(os.getenv("OLLAMA_TEMPERATURE", "0.1"))

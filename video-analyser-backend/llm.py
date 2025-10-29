@@ -3,7 +3,7 @@ from langchain.chat_models import init_chat_model
 from langchain_core.language_models import BaseChatModel
 from configs import Config
 from ai_model_manager import get_model_manager
-from langchain_huggingface import ChatHuggingFace, HuggingFacePipeline
+# from langchain_huggingface import ChatHuggingFace, HuggingFacePipeline
 from transformers import pipeline
 
 
@@ -27,8 +27,8 @@ def get_function_calling_llm() -> BaseChatModel:
         return _get_ollama_model(model_type="function_calling")
     elif backend == "local":
         return _get_local_model(model_type="function_calling")
-    elif backend == "remote":
-        return _get_remote_model()
+    # elif backend == "remote":
+    #     return _get_remote_model()
     else:
         raise ValueError(f"Unknown FUNCTION_CALLING_BACKEND: {backend}. Use 'ollama', 'local', or 'remote'")
 
@@ -67,9 +67,9 @@ def _get_remote_model() -> BaseChatModel:
     )
 
 # Legacy alias
-def _get_gemini_model():
-    """Legacy function - use _get_remote_model() instead"""
-    return _get_remote_model()
+# def _get_gemini_model():
+#     """Legacy function - use _get_remote_model() instead"""
+#     return _get_remote_model()
 
 
 def _get_ollama_model(model_type: str = "function_calling") -> BaseChatModel:

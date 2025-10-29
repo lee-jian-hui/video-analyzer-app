@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "my-tauri-app",
-  "version": "0.1.0",
-  "identifier": "com.jhjh.my-tauri-app",
+  "productName": "Video Analyzer",
+  "version": "1.0.0",
+  "identifier": "com.jhjh.videoanalyzer",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -33,12 +33,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "externalBin": [
-      "sidecars/launcher",
-      "sidecars/ollama",
-      "sidecars/ffmpeg",
-      "sidecars/video_analyzer_backend/video_analyzer_backend"
-    ],
     "resources": [
       "resources/installers/*",
       "resources/ollama_models/**/*"
@@ -47,6 +41,12 @@
       "nsis": {
         "installerHooks": "windows/hooks.nsh"
       }
-    }
+    },
+    "externalBin": [
+      "sidecars/ollama",
+      "sidecars/ffmpeg",
+      "sidecars/video_analyzer_backend/video_analyzer_backend"
+    ]
   }
+
 }

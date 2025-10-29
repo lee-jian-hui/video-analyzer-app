@@ -9,7 +9,6 @@ dependencies = [
     "grpcio>=1.76.0",
     "grpcio-tools>=1.76.0",
     "python-dotenv>=1.1.1",
-
     # LangChain & LLM
     "langchain>=1.0.2",
     "langchain-community>=0.4",
@@ -17,36 +16,21 @@ dependencies = [
     "langchain-ollama>=1.0.0",
     "langgraph>=1.0.1",
     "ollama>=0.6.0",
-
     # ML & Vision
-    "torch>=2.9.0",  # CPU version recommended for Windows
+    "torch>=2.9.0", # CPU version recommended for Windows
     "torchvision>=0.24.0",
     "openai-whisper>=20250625",
     "opencv-python>=4.11.0.86",
     "ultralytics>=8.3.221",
     "transformers>=4.57.1",
     "pillow>=12.0.0",
-
     # Video processing
     "moviepy>=1.0.3",
-
     # Document generation
     "reportlab>=3.6.12",
-
     # OCR (optional)
     "pytesseract>=0.3.13",
-
     # Build tool
     "pyinstaller>=6.0.0",
-
-    # Removed unused dependencies:
-    # - accelerate (only needed for GPU training)
-    # - bitsandbytes (GPU quantization)
-    # - graphviz (visualization, not needed in production)
-    # - ipython (development only)
-    # - langchain-google-genai (not using Google AI)
-    # - langchain-huggingface (not using HF directly)
-    # - litellm (not using multiple LLM providers)
-    # - mcp (not using MCP protocol)
-    # - qwen-agent (using Ollama instead)
+    "langchain-google-genai>=3.0.0",
 ]

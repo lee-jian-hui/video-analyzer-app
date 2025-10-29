@@ -1,0 +1,43 @@
+name: Build Backend (Windows .exe)
+
+on:
+  workflow_dispatch:  # Run manually from GitHub Actions tab
+  push:
+    branches: [ main ]
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        working-directory: video-analyzer-app/video-analyser-backend
+        run: |
+          uv sync --all-extras --dev
+
+      - name: Build backend with PyInstaller
+        uses: sayyid5416/pyinstaller-windows@v1.1.0
+        with:
+          path: video-analyzer-app/video-analyser-backend/server.py
+          name: video_analyzer_backend
+          onefile: false
+          noconsole: true
+          hidden-imports: "langchain,tiktoken,whisper,ultralytics"
+          add-data: "templates;templates,protos;protos,.env;.env,ml-models;ml-models"
+
+      - name: Upload built exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: video-analyzer-backend-exe
+          path: video-analyzer-app/video-analyser-backend/dist/video_analyzer_backend/

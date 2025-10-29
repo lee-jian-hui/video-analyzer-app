@@ -4,7 +4,8 @@ use tokio::io::AsyncReadExt;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Channel, Request};
 use log::{debug, warn};
-
+use tauri_plugin_shell::{ShellExt, process::CommandEvent};
+use tauri::Manager;
 mod config;
 use config::{AppConfig, GrpcConfig};
 
@@ -388,6 +389,106 @@ async fn get_processing_status(_limit: i32) -> Result<Value, String> {
         .map_err(|e| format!("Failed to serialize response: {}", e))
 }
 
+
+/// Check if a TCP port is open (used to detect when backend is ready)
+async fn wait_for_port(port: u16, retries: usize, delay_ms: u64) -> bool {
+    for _ in 0..retries {
+        if TcpStream::connect(("127.0.0.1", port)).await.is_ok() {
+            return true;
+        }
+        sleep(Duration::from_millis(delay_ms)).await;
+    }
+    false
+}
+
+/// Start a sidecar and log the result
+async fn start_sidecar(name: &str, args: &[&str]) -> Result<CommandChild, String> {
+    match Command::new_sidecar(name) {
+        Ok(mut cmd) => {
+            let child = cmd.args(args).spawn()
+                .map_err(|e| format!("Failed to spawn {name}: {e}"))?;
+            println!("🟢 Started sidecar: {name}");
+            Ok(child)
+        }
+        Err(e) => Err(format!("Sidecar {name} not found: {e}")),
+    }
+}
+
+
+
+
+#[tauri::command]
+async fn start_all_services(app: tauri::AppHandle, window: tauri::Window) -> Result<(), String> {
+    use tauri_plugin_shell::{ShellExt, process::CommandEvent};
+    use std::collections::HashMap;
+    use tauri::Manager;
+    use tokio::time::{sleep, Duration};
+
+    // 1️⃣ Build paths
+    let resource_dir = app.path_resolver().resource_dir().ok_or("Missing resource dir")?;
+    let ollama_dir = resource_dir.join("ollama_models");
+
+    // 2️⃣ Create env overrides
+    let mut envs = HashMap::new();
+    envs.insert("OLLAMA_MODELS".into(), ollama_dir.to_string_lossy().to_string());
+    envs.insert("OLLAMA_PORT".into(), "11435".into()); // custom port, avoid conflict
+    envs.insert("OLLAMA_HOST".into(), "127.0.0.1".into());
+
+    // 3️⃣ Spawn Ollama server with explicit model path
+    let ollama_cmd = app
+        .shell()
+        .sidecar("ollama")
+        .map_err(|e| e.to_string())?
+        .envs(envs.clone()) // 👈 apply custom env vars
+        .args(["serve"]);   // 👈 ensure it's serving mode
+
+    let (mut ollama_rx, _ollama_child) = ollama_cmd.spawn().map_err(|e| e.to_string())?;
+    window.emit("status", "🧠 Starting Ollama…").ok();
+
+    // Stream Ollama logs
+    tauri::async_runtime::spawn({
+        let window = window.clone();
+        async move {
+            while let Some(event) = ollama_rx.recv().await {
+                if let CommandEvent::Stdout(line_bytes) = event {
+                    let line = String::from_utf8_lossy(&line_bytes);
+                    window.emit("ollama_log", line.to_string()).ok();
+                }
+            }
+        }
+    });
+
+    // 4️⃣ Start Python backend
+    let backend_cmd = app
+        .shell()
+        .sidecar("video_analyzer_backend/video_analyzer_backend")
+        .map_err(|e| e.to_string())?;
+    let (mut backend_rx, _backend_child) = backend_cmd.spawn().map_err(|e| e.to_string())?;
+
+    tauri::async_runtime::spawn({
+        let window = window.clone();
+        async move {
+            while let Some(event) = backend_rx.recv().await {
+                if let CommandEvent::Stdout(line_bytes) = event {
+                    let line = String::from_utf8_lossy(&line_bytes);
+                    window.emit("backend_log", line.to_string()).ok();
+                }
+            }
+        }
+    });
+
+    // 5️⃣ Wait for backend readiness
+    for _ in 0..30 {
+        if tokio::net::TcpStream::connect(("127.0.0.1", 50051)).await.is_ok() {
+            window.emit("status", "✅ Backend ready!").ok();
+            return Ok(());
+        }
+        sleep(Duration::from_millis(500)).await;
+    }
+
+    Err("Backend did not start in time.".to_string())
+}
+
 // #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Get log level from environment (reads LOG_LEVEL env var)
@@ -403,6 +504,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             greet,
+            start_all_services,
             upload_video,
             upload_video_from_path,
             register_local_video,

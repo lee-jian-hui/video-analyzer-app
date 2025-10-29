@@ -52,24 +52,24 @@ echo ""
 # ========================================
 echo -e "${CYAN}[2/4] Checking ML models...${NC}"
 
-if [ ! -d "ml-models" ] || [ -z "$(ls -A ml-models 2>/dev/null)" ]; then
-    echo -e "${YELLOW}⚠${NC} ML models not found, downloading..."
-    echo "   (This may take 10-20 minutes depending on your connection...)"
-    echo ""
+# if [ ! -d "ml-models" ] || [ -z "$(ls -A ml-models 2>/dev/null)" ]; then
+#     echo -e "${YELLOW}⚠${NC} ML models not found, downloading..."
+#     echo "   (This may take 10-20 minutes depending on your connection...)"
+#     echo ""
 
-    if [ -f "scripts/download_models.py" ]; then
-        uv run python scripts/download_models.py
-        echo -e "${GREEN}✓${NC} ML models downloaded"
-    else
-        echo -e "${RED}✗${NC} download_models.py script not found"
-        echo "Cannot proceed without ML models"
-        exit 1
-    fi
-else
-    MODEL_COUNT=$(find ml-models -type f | wc -l)
-    MODEL_SIZE=$(du -sh ml-models | cut -f1)
-    echo -e "${GREEN}✓${NC} ML models exist ($MODEL_COUNT files, $MODEL_SIZE)"
-fi
+#     if [ -f "scripts/download_models.py" ]; then
+#         uv run python scripts/download_models.py
+#         echo -e "${GREEN}✓${NC} ML models downloaded"
+#     else
+#         echo -e "${RED}✗${NC} download_models.py script not found"
+#         echo "Cannot proceed without ML models"
+#         exit 1
+#     fi
+# else
+#     MODEL_COUNT=$(find ml-models -type f | wc -l)
+#     MODEL_SIZE=$(du -sh ml-models | cut -f1)
+#     echo -e "${GREEN}✓${NC} ML models exist ($MODEL_COUNT files, $MODEL_SIZE)"
+# fi
 
 echo ""
 
@@ -116,7 +116,6 @@ if [ "$BUILD_NEEDED" = true ]; then
       --noconsole \
       --add-data "templates:templates" \
       --add-data "protos:protos" \
-      --add-data "ml-models:ml-models" \
       --hidden-import langchain \
       --hidden-import tiktoken \
       --hidden-import whisper \
