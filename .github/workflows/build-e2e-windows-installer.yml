@@ -176,7 +176,6 @@ jobs:
           name: video-analyzer-windows-installer
           path: my-tauri-app/src-tauri/target/release/bundle/**
 
-
       # --- FINAL: Publish installer to GitHub Release
       - name: Upload installer to GitHub Release (prod-latest)
         uses: softprops/action-gh-release@v2
