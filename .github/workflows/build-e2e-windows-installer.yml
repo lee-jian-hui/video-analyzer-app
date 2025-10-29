@@ -55,8 +55,8 @@ jobs:
       - name: Download Ollama models from release
         run: |
           mkdir -p src-tauri/resources/ollama_models
-          curl -L -o models.zip https://github.com/<your-org>/<your-repo>/releases/download/models-v1.0/models.zip
-          tar -xf models.zip -C src-tauri/resources/ollama_models
+          curl -L -o ollama.exe https://github.com/lee-jian-hui/video-analyzer-app/releases/download/large-files/ollama-models.zip
+          tar -xf ollama_models.zip -C src-tauri/resources/ollama_models
 
       # --- Step 7. Copy backend EXE into Tauri sidecars
       - name: Move backend build output
