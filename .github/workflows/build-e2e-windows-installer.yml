@@ -37,6 +37,10 @@ jobs:
       - name: Build backend with PyInstaller
         working-directory: video-analyser-backend
         run: >
+          echo "Current path:"
+          pwd
+          dir
+          
           pyinstaller
           --name video_analyzer_backend
           --onedir
