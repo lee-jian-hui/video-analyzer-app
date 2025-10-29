@@ -4,38 +4,44 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - '**'
+      - '**'   # run on all branches
 
 jobs:
   build-windows-exe:
+    name: Build Python Backend Executable
     runs-on: windows-latest
 
     steps:
-      - name: Checkout repo
+      # 1️⃣ Checkout your repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      # 2️⃣ Setup Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
-      - name: Install uv
-        run: pip install uv
-
+      # 3️⃣ Install uv and sync dependencies
       - name: Install dependencies
         working-directory: video-analyzer-app/video-analyser-backend
-        run: uv sync --all-extras --dev
+        run: |
+          python -m pip install --upgrade pip
+          pip install uv
+          uv sync --all-extras --dev
 
-      - name: Build backend with PyInstaller
-        uses: sayyid5416/pyinstaller-windows@v1.1.0
+      # 4️⃣ Build with official PyInstaller-Windows Action
+      - name: Build backend with PyInstaller (Windows)
+        uses: JackMcKew/pyinstaller-action-windows@main
         with:
-          path: video-analyzer-app/video-analyser-backend/server.py
-          name: video_analyzer_backend
+          path: video-analyzer-app/video-analyser-backend
+          spec: server.py
           onefile: false
           noconsole: true
           hidden-imports: "langchain,tiktoken,whisper,ultralytics"
           add-data: "templates;templates,protos;protos,.env;.env,ml-models;ml-models"
 
+      # 5️⃣ Upload built executable as workflow artifact
       - name: Upload built exe
         uses: actions/upload-artifact@v4
         with:
