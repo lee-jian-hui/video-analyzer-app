@@ -1,0 +1,82 @@
+name: Build Windows Installer
+
+on:
+  workflow_dispatch:          # manual trigger
+  push:
+    branches: '*'  # optional auto trigger
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      # --- Step 1. Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --- Step 2. Setup Node and Rust (for Tauri)
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # --- Step 3. Setup Python & PyInstaller
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+
+      # --- Step 4. Build Python backend EXE
+      - name: Build Python gRPC backend
+        working-directory: video-analyzer-app/video-analyser-backend
+        run: |
+          pyinstaller `
+            --name video_analyzer_backend `
+            --onedir `
+            --noconsole `
+            --add-data "templates;templates" `
+            --add-data "protos;protos" `
+            server.py
+
+      # --- Step 5. Fetch Ollama binary
+      - name: Download Ollama EXE from release
+        run: |
+          curl -L -o ollama.exe https://github.com/ollama/ollama/releases/latest/download/ollama-windows-amd64.exe
+          mkdir -p src-tauri/sidecars
+          move ollama.exe src-tauri/sidecars/
+
+      # --- Step 6. Fetch model pack (large files)
+      - name: Download Ollama models from release
+        run: |
+          mkdir -p src-tauri/resources/ollama_models
+          curl -L -o models.zip https://github.com/<your-org>/<your-repo>/releases/download/models-v1.0/models.zip
+          tar -xf models.zip -C src-tauri/resources/ollama_models
+
+      # --- Step 7. Copy backend EXE into Tauri sidecars
+      - name: Move backend build output
+        run: |
+          mkdir -p src-tauri/sidecars/video_analyzer_backend
+          xcopy /E /I video-analyzer-app\video-analyser-backend\dist\video_analyzer_backend src-tauri\sidecars\video_analyzer_backend\
+
+      # --- Step 8. Install frontend dependencies
+      - name: Install NPM dependencies
+        working-directory: my-tauri-app
+        run: npm ci
+
+      # --- Step 9. Build full Tauri Windows installer
+      - name: Build Tauri installer
+        working-directory: my-tauri-app
+        run: npm run tauri build
+
+      # --- Step 10. Upload installer as artifact
+      - name: Upload built installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: video-analyzer-windows-installer
+          path: my-tauri-app/src-tauri/target/release/bundle/**
