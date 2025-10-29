@@ -70,8 +70,36 @@ jobs:
           Write-Host "`n📦 Summary of key expected files:"
           $expected = @("python310.dll", "base_library.zip")
           foreach ($file in $expected) {
-              if (Test-Path (Join-Path $distPath $file)) {
-                  Write-Host "✅ Found $file"
+              $found = Get-ChildItem -Recurse $distPath -Include $file -ErrorAction SilentlyContinue
+              if ($found) {
+                  Write-Host "✅ Found $file at $($found[0].FullName)"
+              } else {
+                  Write-Host "❌ Missing $file"
+              }
+          }
+
+          Write-Host "`n✅ DLL check complete — verify all dependencies are listed above."
+      - name: Debug PyInstaller DLL contents
+        shell: pwsh
+        run: |
+          Write-Host "=== Checking for Python DLLs in PyInstaller build ==="
+          $distPath = "video-analyser-backend/dist/video_analyzer_backend"
+          if (-Not (Test-Path $distPath)) {
+              Write-Host "❌ Dist folder not found: $distPath"
+              exit 1
+          }
+
+          Write-Host "`n🔍 Listing Python runtime files (DLLs, pyds, zips):"
+          Get-ChildItem -Recurse $distPath -Include *.dll,*.pyd,*.zip | ForEach-Object {
+              Write-Host "  - $($_.Name)"
+          }
+
+          Write-Host "`n📦 Summary of key expected files:"
+          $expected = @("python310.dll", "base_library.zip")
+          foreach ($file in $expected) {
+              $found = Get-ChildItem -Recurse $distPath -Include $file -ErrorAction SilentlyContinue
+              if ($found) {
+                  Write-Host "✅ Found $file at $($found[0].FullName)"
               } else {
                   Write-Host "❌ Missing $file"
               }
