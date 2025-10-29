@@ -70,13 +70,15 @@ jobs:
           New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/resources/ollama_models" | Out-Null
           Expand-Archive -Force "ollama_models.zip" "my-tauri-app/src-tauri/resources/ollama_models"
 
-      - name: Debug file structure
+      - name: Debug file structure (depth 3)
         shell: pwsh
         run: |
           Write-Host "Current directory: $(Get-Location)"
-          Write-Host "`n=== Listing key folders ==="
-          Get-ChildItem -Directory
-          Get-ChildItem -Recurse -Directory | Where-Object { $_.FullName -match "video_analyzer_backend|src-tauri" }
+          Write-Host "`n=== Directory Tree (Depth: 3) ==="
+          Get-ChildItem -Recurse -Depth 3 | ForEach-Object {
+            $indent = '  ' * ($_.FullName.Split('\').Count - (Get-Location).Path.Split('\').Count)
+            Write-Host "$indent- $($_.Name)"
+          }
 
       # --- Step 7. Copy backend EXE into Tauri sidecars
       - name: Copy backend to Tauri sidecars
