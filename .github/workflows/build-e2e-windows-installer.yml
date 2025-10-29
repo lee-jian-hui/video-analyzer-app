@@ -298,38 +298,54 @@ jobs:
 
 
       # --- Step: Verify all resources and sidecars before building installer
-      - name: Verify resources and sidecars content
+      - name: ✅ Verify resources and sidecars before packaging
         shell: pwsh
         run: |
-          Write-Host "=== Verifying packaging contents before build ===" -ForegroundColor Cyan
+          Write-Host "==================================================" -ForegroundColor Cyan
+          Write-Host "🔍 VERIFYING ALL PACKAGING CONTENTS (RESOURCES + SIDECARS)" -ForegroundColor Cyan
+          Write-Host "==================================================`n"
 
           $resources = "my-tauri-app/src-tauri/resources"
           $sidecars  = "my-tauri-app/src-tauri/sidecars"
 
+          # --- Check required directories exist ---
           if (-Not (Test-Path $resources)) {
-            Write-Host "❌ Missing resources directory ($resources)"
+            Write-Host "❌ Missing resources directory ($resources)" -ForegroundColor Red
             exit 1
           }
           if (-Not (Test-Path $sidecars)) {
-            Write-Host "❌ Missing sidecars directory ($sidecars)"
+            Write-Host "❌ Missing sidecars directory ($sidecars)" -ForegroundColor Red
             exit 1
           }
 
-          Write-Host "`n📦 Resources directory structure:"
+          # --- List all resources ---
+          Write-Host "`n📦 Resources directory structure:" -ForegroundColor Yellow
           Get-ChildItem -Recurse -Path $resources | Select-Object FullName, Length
 
-          Write-Host "`n⚙️  Sidecars directory structure:"
+          # --- List all sidecars ---
+          Write-Host "`n⚙️  Sidecars directory structure:" -ForegroundColor Yellow
           Get-ChildItem -Recurse -Path $sidecars | Select-Object FullName, Length
 
-          Write-Host "`n✅ Verification complete — ready for Tauri packaging."
+          # --- Explicit verification of required sidecar binaries ---
+          $expectedSidecars = @(
+            "my-tauri-app/src-tauri/sidecars/ollama-x86_64-pc-windows-msvc.exe",
+            "my-tauri-app/src-tauri/sidecars/ffmpeg-x86_64-pc-windows-msvc.exe",
+            "my-tauri-app/src-tauri/sidecars/video_analyzer_backend/video_analyzer_backend-x86_64-pc-windows-msvc.exe"
+          )
 
-      - name: ✅ Verify sidecars before packaging
-        shell: pwsh
-        run: |
-          $sidecarDir = "my-tauri-app/src-tauri/sidecars"
-          Write-Host "`n=== Verifying sidecars before Tauri build ==="
-          Get-ChildItem -Recurse -Path $sidecarDir | Select-Object FullName, Length
-          Write-Host "`n✅ These will be bundled according to tauri.conf.json"
+          Write-Host "`n🧠 Verifying required sidecar executables..." -ForegroundColor Yellow
+          foreach ($file in $expectedSidecars) {
+            if (-Not (Test-Path $file)) {
+              Write-Host "❌ Missing required binary: $file" -ForegroundColor Red
+              exit 1
+            } else {
+              $size = (Get-Item $file).Length
+              Write-Host "✅ Found: $file ($([math]::Round($size / 1MB, 2)) MB)" -ForegroundColor Green
+            }
+          }
+
+          Write-Host "`n🎯 These sidecars will be bundled according to tauri.conf.json" -ForegroundColor Cyan
+          Write-Host "✅ Verification complete — ready for Tauri packaging." -ForegroundColor Green
 
 
       # Build full Tauri Windows installer
