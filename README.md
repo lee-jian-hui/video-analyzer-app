@@ -27,6 +27,7 @@
 
 #### Generate PDF Summary Report
 ![alt text](images/image-3.png)
+![alt text](images/pdf-output.png)
 
 #### Low Confidence Detection back t- human in the loop
 ![alt text](iamges/human.png)
