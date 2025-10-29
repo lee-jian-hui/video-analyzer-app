@@ -74,9 +74,15 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "=== Checking for key modules in _internal ==="
-          Get-ChildItem -Recurse -Path "video-analyser-backend/dist/video_analyzer_backend/_internal" |
-            Where-Object { $_.Name -match "grpc|torch|transformers|cv2" } |
-            Select-Object FullName
+          $path = "video-analyser-backend/dist/video_analyzer_backend/_internal"
+          $found = Get-ChildItem -Recurse -Path $path | Where-Object { $_.Name -match "grpc|torch|transformers|cv2" }
+          if (-not $found) {
+            Write-Error "❌ Critical modules not found in PyInstaller build."
+            exit 1
+          } else {
+            Write-Host "✅ Found the following key modules:"
+            $found | Select-Object FullName
+          }
 
       - name: Debug PyInstaller DLL contents
         shell: pwsh
