@@ -66,7 +66,7 @@ jobs:
       - name: Download Ollama models
         shell: pwsh
         run: |
-          Invoke-WebRequest -Uri "https://github.com/lee-jian-hui/video-analyzer-app/releases/download/large-files/ollama_models.zip" -OutFile "ollama_models.zip"
+          Invoke-WebRequest -Uri "https://github.com/lee-jian-hui/video-analyzer-app/releases/download/large-files/ollama-models.zip" -OutFile "ollama_models.zip"
           New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/resources/ollama_models" | Out-Null
           Expand-Archive -Force "ollama_models.zip" "my-tauri-app/src-tauri/resources/ollama_models"
 
