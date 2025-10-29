@@ -3,7 +3,7 @@ use tokio_stream::iter;
 use tokio::io::AsyncReadExt;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Channel, Request};
-use log::{debug, warn};
+use log::{info, debug, warn, error, trace};
 use tauri::Manager;
 mod config;
 use config::{AppConfig, GrpcConfig};
