@@ -1,14 +1,15 @@
 # ========================================
 # Video Analyzer Launcher Script
 # ========================================
-# This script is compiled into launcher.exe and acts as the main entry point.
-# When user clicks the desktop shortcut, this launcher:
+# Compiled into launcher.exe — main entry point.
+# Responsibilities:
 #   1. Starts Ollama service
 #   2. Starts Python backend
 #   3. Launches the Tauri UI
 #   4. Monitors processes and cleans up on exit
 #
-# To compile: ps2exe launcher.ps1 launcher.exe -noConsole -title "Video Analyzer"
+# To compile:
+#   ps2exe launcher.ps1 launcher.exe -noConsole -title "Video Analyzer"
 
 param(
     [string]$InstallDir = $PSScriptRoot
@@ -20,9 +21,9 @@ $ErrorActionPreference = "SilentlyContinue"
 # Configuration
 # ========================================
 
-$OLLAMA_EXE = Join-Path $InstallDir "ollama.exe"
-$BACKEND_EXE = Join-Path $InstallDir "video_analyzer_backend\video_analyzer_backend.exe"
-$TAURI_EXE = Join-Path $InstallDir "Video Analyzer.exe"
+$OLLAMA_EXE  = Join-Path $InstallDir "ollama.exe"
+$BACKEND_EXE = Join-Path $InstallDir "video_analyzer_backend.exe"
+$TAURI_EXE   = Join-Path $InstallDir "Video Analyzer.exe"
 
 $OLLAMA_PORT = 11434
 $BACKEND_PORT = 50051
@@ -75,6 +76,11 @@ function Start-ServiceProcess {
         [hashtable]$EnvVars = @{}
     )
 
+    # Debug info
+    Write-Host "Launching $ServiceName"
+    Write-Host " → Path: $ExePath"
+    Write-Host " → Exists: $(Test-Path $ExePath)"
+
     if (-not (Test-Path $ExePath)) {
         [System.Windows.Forms.MessageBox]::Show(
             "Cannot find $ServiceName at: $ExePath",
@@ -92,10 +98,11 @@ function Start-ServiceProcess {
         return $existing
     }
 
-    # Create log directory
-    $logDir = Join-Path ([Environment]::GetFolderPath("LocalApplicationData")) "VideoAnalyzer\logs"
+    # Create log directory in the app folder
+    $logDir = Join-Path $InstallDir "logs"
     New-Item -ItemType Directory -Force -Path $logDir | Out-Null
     $logPath = Join-Path $logDir "$($ServiceName.ToLower())_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+    Write-Host " → Logging to: $logPath"
 
     # Prepare process start info
     $startInfo = New-Object System.Diagnostics.ProcessStartInfo
@@ -140,9 +147,7 @@ function Stop-ServiceProcess {
         try {
             $_.Kill()
             $_.WaitForExit(5000)
-        } catch {
-            # Process already exited
-        }
+        } catch { }
     }
 }
 
@@ -153,7 +158,7 @@ function Stop-ServiceProcess {
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# Check if already running
+# Prevent duplicate instances
 $mutex = New-Object System.Threading.Mutex($false, "Global\VideoAnalyzerLauncher")
 if (-not $mutex.WaitOne(0)) {
     [System.Windows.Forms.MessageBox]::Show(
@@ -170,7 +175,7 @@ if (-not $mutex.WaitOne(0)) {
 # ========================================
 
 $ollamaEnv = @{
-    "OLLAMA_HOST" = "127.0.0.1:$OLLAMA_PORT"
+    "OLLAMA_HOST"   = "127.0.0.1:$OLLAMA_PORT"
     "OLLAMA_MODELS" = Join-Path $InstallDir "ollama_models"
 }
 
@@ -180,7 +185,6 @@ if (-not $ollamaProcess) {
     exit 1
 }
 
-# Wait for Ollama to be ready
 if (-not (Wait-ForPort -Port $OLLAMA_PORT -Timeout 120 -ServiceName "Ollama")) {
     Stop-ServiceProcess -ProcessName "ollama"
     $mutex.ReleaseMutex()
@@ -192,12 +196,12 @@ if (-not (Wait-ForPort -Port $OLLAMA_PORT -Timeout 120 -ServiceName "Ollama")) {
 # ========================================
 
 $backendEnv = @{
-    "OLLAMA_BASE_URL" = "http://127.0.0.1:$OLLAMA_PORT"
+    "OLLAMA_BASE_URL"       = "http://127.0.0.1:$OLLAMA_PORT"
     "FUNCTION_CALLING_BACKEND" = "ollama"
-    "CHAT_BACKEND" = "ollama"
-    "HF_HUB_OFFLINE" = "true"
-    "TRANSFORMERS_OFFLINE" = "true"
-    "GRPC_PORT" = "$BACKEND_PORT"
+    "CHAT_BACKEND"             = "ollama"
+    "HF_HUB_OFFLINE"           = "true"
+    "TRANSFORMERS_OFFLINE"     = "true"
+    "GRPC_PORT"                = "$BACKEND_PORT"
 }
 
 $backendProcess = Start-ServiceProcess -ExePath $BACKEND_EXE -ServiceName "Backend" -EnvVars $backendEnv
@@ -207,7 +211,6 @@ if (-not $backendProcess) {
     exit 1
 }
 
-# Wait for backend to be ready
 if (-not (Wait-ForPort -Port $BACKEND_PORT -Timeout $STARTUP_TIMEOUT -ServiceName "Backend")) {
     Stop-ServiceProcess -ProcessName "video_analyzer_backend"
     Stop-ServiceProcess -ProcessName "ollama"
@@ -232,17 +235,14 @@ if (-not (Test-Path $TAURI_EXE)) {
     exit 1
 }
 
-# Launch UI (visible window)
 $tauriProcess = Start-Process -FilePath $TAURI_EXE -PassThru
 
 # ========================================
 # Step 4: Monitor and Cleanup
 # ========================================
 
-# Wait for UI to exit
 $tauriProcess.WaitForExit()
 
-# Cleanup background processes
 Stop-ServiceProcess -ProcessName "video_analyzer_backend"
 Stop-ServiceProcess -ProcessName "ollama"
 

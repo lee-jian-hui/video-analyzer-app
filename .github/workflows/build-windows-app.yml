@@ -185,64 +185,49 @@ jobs:
           $ErrorActionPreference = "Stop"
           $repo = "${{ github.repository }}"
           $tag  = "large-files"
-          $dst  = "my-tauri-app/src-tauri/sidecars"
+          $root = (Resolve-Path ".").Path
+          $dst  = Join-Path $root "my-tauri-app/src-tauri/sidecars"
           New-Item -ItemType Directory -Force -Path $dst | Out-Null
 
           function Get-Release($name, $out) {
-            $url = "https://github.com/$repo/releases/download/$tag/$name"
-            Write-Host "⬇️ Downloading $name → $out"
-            try {
-              Invoke-WebRequest -Uri $url -OutFile "$dst\$out" -UseBasicParsing
-              if (!(Test-Path "$dst\$out")) {
-                Write-Host "❌ FAILED to download: $out" -ForegroundColor Red
-              } else {
-                $size = (Get-Item "$dst\$out").Length / 1MB
-                Write-Host "✅ Downloaded $out ($([math]::Round($size,2)) MB)"
-              }
-            } catch {
-              Write-Host ("⚠️ Error downloading " + $name + ": " + $_) -ForegroundColor Yellow
-            }
+            $u = "https://github.com/$repo/releases/download/$tag/$name"
+            Write-Host "⬇️ Downloading $name from $u"
+            Invoke-WebRequest -Uri $u -OutFile (Join-Path $dst $out) -UseBasicParsing
           }
 
-          # Download sidecars
-          Get-Release "launcher-x86_64-pc-windows-msvc.exe" "launcher-x86_64-pc-windows-msvc.exe"
+          Get-Release "launcher-x86_64-pc-windows-msvc.exe" "launcher.exe"
           Get-Release "ffmpeg.exe" "ffmpeg.exe"
           Get-Release "ollama.exe" "ollama.exe"
 
-          # Ensure architecture-suffixed copies for Tauri
-          $bins = @(
-            "launcher",
-            "ollama",
-            "ffmpeg"
-          )
-          foreach ($b in $bins) {
-            $src = "$dst\$b.exe"
-            $target = "$dst\$b-x86_64-pc-windows-msvc.exe"
-            if (Test-Path $src) {
-              Copy-Item $src $target -Force
-              Write-Host "🔁 Created Tauri-compatible copy: $target"
-            } else {
-              Write-Host "⚠️ Missing base exe: $src" -ForegroundColor Yellow
-            }
-          }
+          # --- installers ---
+          $instDir = Join-Path $root "my-tauri-app/src-tauri/resources/installers"
+          $modelsDir = Join-Path $root "my-tauri-app/src-tauri/resources/ollama_models"
+          New-Item -ItemType Directory -Force -Path $instDir | Out-Null
+          New-Item -ItemType Directory -Force -Path $modelsDir | Out-Null
 
-          # Create resource dirs and verify results
-          New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/resources/installers" | Out-Null
-          New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/resources/ollama_models" | Out-Null
+          Write-Host "`n⬇️ Downloading installers..."
+          Invoke-WebRequest -Uri "https://github.com/$repo/releases/download/$tag/vc_redist.x64.exe" -OutFile (Join-Path $instDir "vc_redist.x64.exe") -UseBasicParsing
+          Invoke-WebRequest -Uri "https://github.com/$repo/releases/download/$tag/dxwebsetup.exe" -OutFile (Join-Path $instDir "dxwebsetup.exe") -UseBasicParsing
 
-          Write-Host "`n📂 Final sidecar directory contents:"
-          Get-ChildItem -Recurse -File $dst | ForEach-Object {
-            Write-Host "  - $($_.FullName)"
-          }
+          Write-Host "`n⬇️ Downloading Ollama model bundle..."
+          $modelZip = Join-Path $root "models.zip"
+          Invoke-WebRequest -Uri "https://github.com/$repo/releases/download/$tag/ollama-models.zip" -OutFile $modelZip -UseBasicParsing
 
-      # If your Rust build expects proto under src-tauri/proto (tonic-build)
-      - name: Sync proto for Rust build (if needed)
-        shell: pwsh
-        run: |
-          if (Test-Path "protos/video_analyzer.proto") {
-            New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/proto" | Out-Null
-            Copy-Item -Force -Path "protos/video_analyzer.proto" -Destination "my-tauri-app/src-tauri/proto/video_analyzer.proto"
-          }
+          Write-Host "`n📦 Extracting models..."
+          Expand-Archive -Path $modelZip -DestinationPath $modelsDir -Force
+          Remove-Item $modelZip -Force
+
+          Write-Host "`n✅ Done staging sidecars and resources."
+          Get-ChildItem -Recurse -File $dst, $instDir, $modelsDir | % { Write-Host $_.FullName }
+
+            # If your Rust build expects proto under src-tauri/proto (tonic-build)
+            - name: Sync proto for Rust build (if needed)
+              shell: pwsh
+              run: |
+                if (Test-Path "protos/video_analyzer.proto") {
+                  New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/proto" | Out-Null
+                  Copy-Item -Force -Path "protos/video_analyzer.proto" -Destination "my-tauri-app/src-tauri/proto/video_analyzer.proto"
+                }
 
       # Tooling for the Tauri build (each job = fresh VM, so reinstall here)
       - name: Setup Node
