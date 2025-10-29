@@ -304,5 +304,6 @@ jobs:
           files: |
             my-tauri-app/src-tauri/target/release/bundle/**/*.exe
             my-tauri-app/src-tauri/target/release/bundle/**/*.msi
+          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
