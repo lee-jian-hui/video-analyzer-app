@@ -234,31 +234,6 @@ jobs:
           Get-ChildItem -Recurse -Path $sidecars | Select-Object FullName, Length
 
           Write-Host "`n✅ Verification complete — ready for Tauri packaging."
-      # --- Step: Verify all resources and sidecars before building installer
-      - name: Verify resources and sidecars content
-        shell: pwsh
-        run: |
-          Write-Host "=== Verifying packaging contents before build ===" -ForegroundColor Cyan
-
-          $resources = "my-tauri-app/src-tauri/resources"
-          $sidecars  = "my-tauri-app/src-tauri/sidecars"
-
-          if (-Not (Test-Path $resources)) {
-            Write-Host "❌ Missing resources directory ($resources)"
-            exit 1
-          }
-          if (-Not (Test-Path $sidecars)) {
-            Write-Host "❌ Missing sidecars directory ($sidecars)"
-            exit 1
-          }
-
-          Write-Host "`n📦 Resources directory structure:"
-          Get-ChildItem -Recurse -Path $resources | Select-Object FullName, Length
-
-          Write-Host "`n⚙️  Sidecars directory structure:"
-          Get-ChildItem -Recurse -Path $sidecars | Select-Object FullName, Length
-
-          Write-Host "`n✅ Verification complete — ready for Tauri packaging."
 
 
 
@@ -267,6 +242,13 @@ jobs:
         working-directory: my-tauri-app
         run: npm run tauri build
 
+
+      - name: Verify final packaged files inside bundle
+        shell: pwsh
+        run: |
+          Write-Host "=== Verifying built installer contents ===" -ForegroundColor Cyan
+          Get-ChildItem -Recurse -Path "my-tauri-app/src-tauri/target/release/bundle" | Select-Object FullName, Length
+          Write-Host "✅ Bundle verification complete"
 
       - name: Debug file structure (depth 3)
         shell: pwsh
