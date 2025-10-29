@@ -12,8 +12,28 @@
 #   ps2exe launcher.ps1 launcher.exe -noConsole -title "Video Analyzer"
 
 param(
-    [string]$InstallDir = $PSScriptRoot
+    [string]$InstallDir = ""
 )
+
+# --- Determine correct InstallDir even when compiled into EXE ---
+if (-not $InstallDir -or $InstallDir -eq "") {
+    try {
+        # When compiled, $PSScriptRoot and $MyInvocation both return empty
+        $InstallDir = Split-Path -Parent ([System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName)
+    } catch {
+        # As fallback, use current directory
+        $InstallDir = (Get-Location).Path
+    }
+}
+
+Write-Host "Launcher running from: $InstallDir"
+
+$logDir = Join-Path $InstallDir "logs"
+New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+Start-Transcript -Path (Join-Path $logDir "launcher_trace_$(Get-Date -Format 'yyyyMMdd_HHmmss').log") -Append
+
+
+
 
 $ErrorActionPreference = "SilentlyContinue"
 
