@@ -448,7 +448,7 @@ async fn start_all_services(app: tauri::AppHandle, window: tauri::Window) -> Res
     // 2️⃣ Create env overrides
     let mut envs: HashMap<String, String> = HashMap::new();
     envs.insert("OLLAMA_MODELS".to_string(), ollama_dir.to_string_lossy().to_string());
-    envs.insert("OLLAMA_PORT".to_string(), "11435".to_string());
+    envs.insert("OLLAMA_PORT".to_string(), "11434".to_string());
     envs.insert("OLLAMA_HOST".to_string(), "127.0.0.1".to_string());
 
     // 3️⃣ Spawn Ollama server
