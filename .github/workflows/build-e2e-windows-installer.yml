@@ -1,10 +1,11 @@
 name: Build Windows Installer
 
-on:
-  workflow_dispatch:          # manual trigger
-  push:
-    branches: '*'  # optional auto trigger
 
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - '**'
 jobs:
   build-windows:
     runs-on: windows-latest
