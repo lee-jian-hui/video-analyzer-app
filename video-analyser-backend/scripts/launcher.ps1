@@ -92,20 +92,35 @@ function Start-ServiceProcess {
         return $existing
     }
 
-    # Start the process
+    # Create log directory
+    $logDir = Join-Path ([Environment]::GetFolderPath("LocalApplicationData")) "VideoAnalyzer\logs"
+    New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+    $logPath = Join-Path $logDir "$($ServiceName.ToLower())_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+
+    # Prepare process start info
     $startInfo = New-Object System.Diagnostics.ProcessStartInfo
     $startInfo.FileName = $ExePath
     $startInfo.UseShellExecute = $false
     $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
     $startInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
 
-    # Set environment variables
     foreach ($key in $EnvVars.Keys) {
         $startInfo.EnvironmentVariables[$key] = $EnvVars[$key]
     }
 
     try {
-        $process = [System.Diagnostics.Process]::Start($startInfo)
+        $process = New-Object System.Diagnostics.Process
+        $process.StartInfo = $startInfo
+        $process.Start() | Out-Null
+
+        # Async logging to file
+        Start-Job {
+            $out = $using:process.StandardOutput.ReadToEnd() + "`n" + $using:process.StandardError.ReadToEnd()
+            Add-Content -Path $using:logPath -Value $out
+        } | Out-Null
+
         return $process
     } catch {
         [System.Windows.Forms.MessageBox]::Show(
@@ -166,7 +181,7 @@ if (-not $ollamaProcess) {
 }
 
 # Wait for Ollama to be ready
-if (-not (Wait-ForPort -Port $OLLAMA_PORT -Timeout 60 -ServiceName "Ollama")) {
+if (-not (Wait-ForPort -Port $OLLAMA_PORT -Timeout 120 -ServiceName "Ollama")) {
     Stop-ServiceProcess -ProcessName "ollama"
     $mutex.ReleaseMutex()
     exit 1

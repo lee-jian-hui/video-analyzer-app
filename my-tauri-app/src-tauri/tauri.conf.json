@@ -34,10 +34,10 @@
       "icons/icon.ico"
     ],
     "externalBin": [
-      "sidecars/launcher.exe",
-      "sidecars/ollama.exe",
-      "sidecars/ffmpeg.exe",
-      "sidecars/video_analyzer_backend/video_analyzer_backend.exe"
+      "sidecars/launcher",
+      "sidecars/ollama",
+      "sidecars/ffmpeg",
+      "sidecars/video_analyzer_backend/video_analyzer_backend"
     ],
     "resources": [
       "resources/installers/*",
