@@ -4,7 +4,6 @@ use tokio::io::AsyncReadExt;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Channel, Request};
 use log::{debug, warn};
-use tauri_plugin_shell::{ShellExt, process::CommandEvent};
 use tauri::Manager;
 mod config;
 use config::{AppConfig, GrpcConfig};
