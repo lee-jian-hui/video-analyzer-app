@@ -70,17 +70,8 @@ jobs:
           New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/resources/ollama_models" | Out-Null
           Expand-Archive -Force "ollama_models.zip" "my-tauri-app/src-tauri/resources/ollama_models"
 
-      - name: Debug file structure (depth 3)
-        shell: pwsh
-        run: |
-          Write-Host "Current directory: $(Get-Location)"
-          Write-Host "`n=== Directory Tree (Depth: 3) ==="
-          Get-ChildItem -Recurse -Depth 3 | ForEach-Object {
-            $indent = '  ' * ($_.FullName.Split('\').Count - (Get-Location).Path.Split('\').Count)
-            Write-Host "$indent- $($_.Name)"
-          }
 
-      # --- Step 7. Copy backend EXE into Tauri sidecars
+      # Copy backend EXE into Tauri sidecars
       - name: Copy backend to Tauri sidecars
         shell: pwsh
         run: |
@@ -95,20 +86,32 @@ jobs:
           Write-Host "✅ Backend successfully copied into Tauri sidecars"
           Get-ChildItem -Recurse "my-tauri-app/src-tauri/sidecars/video_analyzer_backend"
 
-      # --- Step 8. Install frontend dependencies
+      # Install frontend dependencies
       - name: Install NPM dependencies
         working-directory: my-tauri-app
         run: npm ci
-        
-      # --- Step 9. Install protoc for Rust gRPC build
+
+      # Install protoc for Rust gRPC build
       - name: Install protoc (Protocol Buffers)
         shell: pwsh
         run: |
           choco install protoc --version=21.12 -y
           $env:Path += ";C:\ProgramData\chocolatey\lib\protoc\tools\bin"
           protoc --version
-          
-      # --- Step 9. Build full Tauri Windows installer
+
+
+      - name: Debug file structure (depth 3)
+        shell: pwsh
+        run: |
+          Write-Host "Current directory: $(Get-Location)"
+          Write-Host "`n=== Directory Tree (Depth: 3) ==="
+          Get-ChildItem -Recurse -Depth 3 | ForEach-Object {
+            $indent = '  ' * ($_.FullName.Split('\').Count - (Get-Location).Path.Split('\').Count)
+            Write-Host "$indent- $($_.Name)"
+          }
+
+
+      # Build full Tauri Windows installer
       - name: Build Tauri installer
         working-directory: my-tauri-app
         run: npm run tauri build
@@ -125,7 +128,7 @@ jobs:
           }
 
 
-      # --- Step 10. Upload installer as artifact
+      # --- FINAL: Upload installer as artifact
       - name: Upload built installer
         uses: actions/upload-artifact@v4
         with:
