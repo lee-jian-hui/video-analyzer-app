@@ -116,7 +116,7 @@ jobs:
             --hidden-import "grpc._server" `
             --hidden-import "grpc._simple_stubs" `
             --hidden-import "grpc._utilities" `
-            --hidden-import=pkg_resources
+            --hidden-import "pkg_resources"
             --collect-all "grpc" `
             --collect-all "grpcio" `
             --collect-all "grpc_tools" `
