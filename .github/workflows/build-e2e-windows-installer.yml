@@ -88,6 +88,12 @@ jobs:
           key: ml-models-cache-v1
 
 
+      - name: Install backend dependencies
+        working-directory: video-analyser-backend
+        shell: bash
+        run: uv sync
+            
+
 
       # --- Step 4. Build Python backend EXE
       # --- Step 4. Build Python backend EXE
