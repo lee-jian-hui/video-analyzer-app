@@ -339,6 +339,23 @@ jobs:
           Write-Host "`nResources under src-tauri/resources:"
           Get-ChildItem -Recurse -File my-tauri-app/src-tauri/resources | ForEach-Object { $_.FullName }
 
+      - name: Verify all expected sidecars exist
+        shell: pwsh
+        run: |
+          $expected = @(
+            "my-tauri-app/src-tauri/sidecars/launcher-x86_64-pc-windows-msvc.exe",
+            "my-tauri-app/src-tauri/sidecars/ffmpeg-x86_64-pc-windows-msvc.exe",
+            "my-tauri-app/src-tauri/sidecars/ollama-x86_64-pc-windows-msvc.exe",
+            "my-tauri-app/src-tauri/sidecars/video_analyzer_backend/video_analyzer_backend-x86_64-pc-windows-msvc.exe"
+          )
+          foreach ($f in $expected) {
+            if (!(Test-Path $f)) {
+              Write-Host "❌ Missing: $f" -ForegroundColor Red
+              exit 1
+            }
+            Write-Host "✅ Found: $f"
+          }
+
       - name: Build Tauri installer
         working-directory: my-tauri-app
         run: npm run tauri build
