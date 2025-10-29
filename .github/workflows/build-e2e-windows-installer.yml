@@ -106,27 +106,23 @@ jobs:
             --add-data "templates;templates" `
             --add-data "protos;protos" `
             --add-data "ml-models;ml-models" `
+            --collect-all "grpc" `
+            --collect-all "grpcio" `
+            --collect-all "grpc_tools" `
+            --hidden-import "pkg_resources" `
             --hidden-import "grpc" `
             --hidden-import "grpc._cython" `
             --hidden-import "grpc._cython.cygrpc" `
             --hidden-import "grpc._channel" `
             --hidden-import "grpc._common" `
-            --hidden-import "grpc._grpcio_metadata" `
-            --hidden-import "grpc._plugin_wrapping" `
             --hidden-import "grpc._server" `
+            --hidden-import "grpc._plugin_wrapping" `
             --hidden-import "grpc._simple_stubs" `
-            --hidden-import "grpc._utilities" `
-            --hidden-import "pkg_resources"
-            --collect-all "grpc" `
-            --collect-all "grpcio" `
-            --collect-all "grpc_tools" `
             --hidden-import "cv2" `
             --hidden-import "torch" `
             --hidden-import "torchvision" `
             --hidden-import "transformers" `
-            --hidden-import "transformers.models" `
             --hidden-import "moviepy" `
-            --hidden-import "moviepy.editor" `
             --hidden-import "pytesseract" `
             --hidden-import "langchain" `
             --hidden-import "langchain_community" `
