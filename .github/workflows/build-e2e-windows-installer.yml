@@ -323,6 +323,13 @@ jobs:
 
           Write-Host "`n✅ Verification complete — ready for Tauri packaging."
 
+      - name: ✅ Verify sidecars before packaging
+        shell: pwsh
+        run: |
+          $sidecarDir = "my-tauri-app/src-tauri/sidecars"
+          Write-Host "`n=== Verifying sidecars before Tauri build ==="
+          Get-ChildItem -Recurse -Path $sidecarDir | Select-Object FullName, Length
+          Write-Host "`n✅ These will be bundled according to tauri.conf.json"
 
 
       # Build full Tauri Windows installer
