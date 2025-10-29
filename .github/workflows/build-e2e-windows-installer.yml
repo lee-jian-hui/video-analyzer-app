@@ -37,9 +37,9 @@ jobs:
       - name: Build backend with PyInstaller
         working-directory: video-analyser-backend
         run: >
-          echo "Current path:"
-          pwd
-          dir
+          Write-Host "=== Building Python backend ==="
+          Get-Location
+          Get-ChildItem
 
           pyinstaller
           --name video_analyzer_backend
@@ -49,26 +49,42 @@ jobs:
           --add-data "protos;protos"
           server.py
 
+      - name: Debug backend build output
+        shell: pwsh
+        run: |
+          Write-Host "=== Checking backend build output ==="
+          Get-ChildItem -Recurse -Directory -Path video-analyser-backend\dist
 
       # --- Step 5. Fetch Ollama binary
       - name: Download Ollama EXE from release
+        shell: pwsh
         run: |
-          curl -L -o ollama.exe https://github.com/lee-jian-hui/video-analyzer-app/releases/download/large-files/ollama.exe
-          mkdir -p src-tauri/sidecars
-          move ollama.exe src-tauri/sidecars/
+          Invoke-WebRequest -Uri "https://github.com/lee-jian-hui/video-analyzer-app/releases/download/large-files/ollama.exe" -OutFile "ollama.exe"
+          New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/sidecars" | Out-Null
+          Move-Item -Force ollama.exe "my-tauri-app/src-tauri/sidecars/"
 
       - name: Download Ollama models
+        shell: pwsh
         run: |
-          curl -L -o ollama_models.zip https://github.com/lee-jian-hui/video-analyzer-app/releases/download/large-files/ollama_models.zip
-          mkdir -p src-tauri/resources/ollama_models
-          powershell -Command "Expand-Archive -Force 'ollama_models.zip' 'src-tauri/resources/ollama_models'"
+          Invoke-WebRequest -Uri "https://github.com/lee-jian-hui/video-analyzer-app/releases/download/large-files/ollama_models.zip" -OutFile "ollama_models.zip"
+          New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/resources/ollama_models" | Out-Null
+          Expand-Archive -Force "ollama_models.zip" "my-tauri-app/src-tauri/resources/ollama_models"
+
 
       # --- Step 7. Copy backend EXE into Tauri sidecars
       - name: Copy backend to Tauri sidecars
+        shell: pwsh
         run: |
-          dir src-tauri/sidecars/video_analyzer_backend
-          mkdir -p src-tauri/sidecars/video_analyzer_backend
-          xcopy video-analyser-backend\dist\video_analyzer_backend src-tauri\sidecars\video_analyzer_backend /E /I /Y
+          Write-Host "=== Copying backend to Tauri sidecars ==="
+
+          # Ensure target directory exists
+          New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/sidecars/video_analyzer_backend" | Out-Null
+
+          # Copy built backend EXE + dependencies
+          Copy-Item -Recurse -Force "video-analyser-backend/dist/video_analyzer_backend/*" "my-tauri-app/src-tauri/sidecars/video_analyzer_backend"
+
+          Write-Host "✅ Backend successfully copied into Tauri sidecars"
+          Get-ChildItem -Recurse "my-tauri-app/src-tauri/sidecars/video_analyzer_backend"
 
       # --- Step 8. Install frontend dependencies
       - name: Install NPM dependencies
