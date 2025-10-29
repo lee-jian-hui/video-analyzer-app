@@ -169,7 +169,7 @@ jobs:
           }
 
 
-      # --- FINAL: Upload installer as artifact
+      # --- Upload installer as artifact
       - name: Upload built installer
         uses: actions/upload-artifact@v4
         with:
