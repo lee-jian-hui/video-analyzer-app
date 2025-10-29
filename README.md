@@ -1,7 +1,7 @@
 ## PROJECT: Multi Agent MCP Video Analyser
 
-- Allow users t- select and upload local .mp4 files. 
-- Support natural language interaction t- process and query vide- content. 
+- Allow users to select and upload local .mp4 files. 
+- Support natural language interaction to process and query vide- content. 
 - Example user queries: 
     - “Transcribe the video.” 
     - “Create a PowerPoint with the key points discussed in the video.” 
@@ -29,7 +29,7 @@
 ![alt text](images/image-3.png)
 ![alt text](images/pdf-output.png)
 
-#### Low Confidence Detection back t- human in the loop
+#### Low Confidence Detection back to human in the loop
 ![alt text](images/human.png)
 
 ## Pre-requisites
