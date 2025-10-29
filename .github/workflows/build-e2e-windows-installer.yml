@@ -45,10 +45,10 @@ jobs:
         shell: bash
         run: |
           echo "=== 🧠 Preparing AI models for bundling ==="
-          uv run python -m scripts.download_models
+          uv run env PYTHONPATH=. python -m scripts.download_models
 
           echo "=== 🔍 Verifying models ==="
-          uv run python -m scripts.download_models verify
+          uv run env PYTHONPATH=. python scripts/download_models.py verify
 
           echo "=== 📂 Post-verify inspection ==="
           echo "Listing all model files with sizes:"
