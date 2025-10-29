@@ -1,9 +1,10 @@
 name: Build Backend (Windows .exe)
 
 on:
-  workflow_dispatch:  # Run manually from GitHub Actions tab
+  workflow_dispatch:
   push:
-    branches: ['*']
+    branches:
+      - '**'
 
 jobs:
   build-windows-exe:
@@ -23,8 +24,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: video-analyzer-app/video-analyser-backend
-        run: |
-          uv sync --all-extras --dev
+        run: uv sync --all-extras --dev
 
       - name: Build backend with PyInstaller
         uses: sayyid5416/pyinstaller-windows@v1.1.0
