@@ -251,26 +251,26 @@ jobs:
         run: npm ci
 
 
-      - name: Patch sidecar binary naming for Tauri
-        shell: pwsh
-        run: |
-          $dst = "my-tauri-app/src-tauri/sidecars"
-          $bins = @(
-            "launcher.exe",
-            "ffmpeg.exe",
-            "ollama.exe",
-            "video_analyzer_backend/video_analyzer_backend.exe"
-          )
-          foreach ($b in $bins) {
-            $src = Join-Path $dst $b
-            if (Test-Path $src) {
-              $target = "$src-x86_64-pc-windows-msvc.exe"
-              Copy-Item $src $target -Force
-              Write-Host "✓ Copied $src → $target"
-            } else {
-              Write-Host "⚠ Missing expected file: $src" -ForegroundColor Yellow
-            }
-          }
+      # - name: Patch sidecar binary naming for Tauri
+      #   shell: pwsh
+      #   run: |
+      #     $dst = "my-tauri-app/src-tauri/sidecars"
+      #     $bins = @(
+      #       "launcher.exe",
+      #       "ffmpeg.exe",
+      #       "ollama.exe",
+      #       "video_analyzer_backend/video_analyzer_backend.exe"
+      #     )
+      #     foreach ($b in $bins) {
+      #       $src = Join-Path $dst $b
+      #       if (Test-Path $src) {
+      #         $target = "$src-x86_64-pc-windows-msvc.exe"
+      #         Copy-Item $src $target -Force
+      #         Write-Host "✓ Copied $src → $target"
+      #       } else {
+      #         Write-Host "⚠ Missing expected file: $src" -ForegroundColor Yellow
+      #       }
+      #     }
 
       - name: Build Tauri installer
         working-directory: my-tauri-app
