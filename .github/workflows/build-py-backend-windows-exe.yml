@@ -3,7 +3,7 @@ name: Build Backend (Windows .exe)
 on:
   workflow_dispatch:  # Run manually from GitHub Actions tab
   push:
-    branches: [ main ]
+    branches: ['*']
 
 jobs:
   build-windows-exe:
