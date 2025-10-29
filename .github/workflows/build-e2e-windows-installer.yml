@@ -109,6 +109,16 @@ jobs:
             --hidden-import "grpc" `
             --hidden-import "grpc._cython" `
             --hidden-import "grpc._cython.cygrpc" `
+            --hidden-import "grpc._channel" `
+            --hidden-import "grpc._common" `
+            --hidden-import "grpc._grpcio_metadata" `
+            --hidden-import "grpc._plugin_wrapping" `
+            --hidden-import "grpc._server" `
+            --hidden-import "grpc._simple_stubs" `
+            --hidden-import "grpc._utilities" `
+            --collect-all "grpc" `
+            --collect-all "grpcio" `
+            --collect-all "grpc_tools" `
             --hidden-import "cv2" `
             --hidden-import "torch" `
             --hidden-import "torchvision" `
@@ -126,18 +136,48 @@ jobs:
             --hidden-import "ollama" `
             server.py
 
-      - name: Verify PyInstaller build output
+      - name: ✅ Verify critical modules inside PyInstaller build
         shell: pwsh
         run: |
-          Write-Host "=== Checking for key modules in _internal ==="
-          $path = "video-analyser-backend/dist/video_analyzer_backend/_internal"
-          $found = Get-ChildItem -Recurse -Path $path | Where-Object { $_.Name -match "grpc|torch|transformers|cv2" }
-          if (-not $found) {
-            Write-Error "❌ Critical modules not found in PyInstaller build."
+          $base = "video-analyser-backend/dist/video_analyzer_backend/_internal"
+          if (-Not (Test-Path $base)) {
+            Write-Error "❌ _internal folder missing at $base"
+            exit 1
+          }
+
+          # Define expected module roots
+          $expected = @(
+            "grpc",
+            "torch",
+            "transformers",
+            "cv2"
+          )
+
+          # Check each expected folder
+          foreach ($mod in $expected) {
+            $path = Join-Path $base $mod
+            if (-Not (Test-Path $path)) {
+              Write-Error "❌ Missing module directory: $path"
+              $missing = $true
+            } else {
+              Write-Host "✅ Found module folder: $path"
+            }
+          }
+
+          # Deep inspection for grpc’s compiled C-extension
+          $grpc_cy = Get-ChildItem -Recurse $base -ErrorAction SilentlyContinue | Where-Object { $_.Name -match "cygrpc.*\.pyd$" }
+          if (-not $grpc_cy) {
+            Write-Error "❌ Missing grpc C-extension (cygrpc.pyd)"
+            $missing = $true
+          } else {
+            Write-Host "✅ Found grpc C-extension: $($grpc_cy.FullName)"
+          }
+
+          if ($missing) {
+            Write-Error "❌ One or more critical Python modules missing from the build output."
             exit 1
           } else {
-            Write-Host "✅ Found the following key modules:"
-            $found | Select-Object FullName
+            Write-Host "✅ All critical Python modules are present and validated."
           }
 
       - name: Debug PyInstaller DLL contents
