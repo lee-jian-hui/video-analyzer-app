@@ -216,6 +216,10 @@ jobs:
           Write-Host "`n📦 Extracting models..."
           Expand-Archive -Path $modelZip -DestinationPath $modelsDir -Force
           Remove-Item $modelZip -Force
+          
+          if (!(Test-Path "$modelsDir")) {
+            Write-Host "⚠️ Ollama models folder missing after extraction." -ForegroundColor Yellow
+          }
 
           Write-Host "`n✅ Done staging sidecars and resources."
           Get-ChildItem -Recurse -File $dst, $instDir, $modelsDir | % { Write-Host $_.FullName }
