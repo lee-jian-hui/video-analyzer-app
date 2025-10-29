@@ -220,14 +220,14 @@ jobs:
           Write-Host "`n✅ Done staging sidecars and resources."
           Get-ChildItem -Recurse -File $dst, $instDir, $modelsDir | % { Write-Host $_.FullName }
 
-            # If your Rust build expects proto under src-tauri/proto (tonic-build)
-            - name: Sync proto for Rust build (if needed)
-              shell: pwsh
-              run: |
-                if (Test-Path "protos/video_analyzer.proto") {
-                  New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/proto" | Out-Null
-                  Copy-Item -Force -Path "protos/video_analyzer.proto" -Destination "my-tauri-app/src-tauri/proto/video_analyzer.proto"
-                }
+      # If your Rust build expects proto under src-tauri/proto (tonic-build)
+      - name: Sync proto for Rust build (if needed)
+        shell: pwsh
+        run: |
+          if (Test-Path "protos/video_analyzer.proto") {
+            New-Item -ItemType Directory -Force -Path "my-tauri-app/src-tauri/proto" | Out-Null
+            Copy-Item -Force -Path "protos/video_analyzer.proto" -Destination "my-tauri-app/src-tauri/proto/video_analyzer.proto"
+          }
 
       # Tooling for the Tauri build (each job = fresh VM, so reinstall here)
       - name: Setup Node
