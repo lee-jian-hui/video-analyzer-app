@@ -34,7 +34,7 @@ jobs:
       - name: Build backend with PyInstaller (Windows)
         uses: JackMcKew/pyinstaller-action-windows@main
         with:
-          path: video-analyser-backend
+          path: video-analyzer-app/video-analyser-backend
           spec: server.py
           onefile: false
           noconsole: true
