@@ -49,6 +49,7 @@ jobs:
           --add-data "protos;protos"
           server.py
 
+
       # --- Step 5. Fetch Ollama binary
       - name: Download Ollama EXE from release
         run: |
@@ -63,10 +64,11 @@ jobs:
           powershell -Command "Expand-Archive -Force 'ollama_models.zip' 'src-tauri/resources/ollama_models'"
 
       # --- Step 7. Copy backend EXE into Tauri sidecars
-      - name: Move backend build output
+      - name: Copy backend to Tauri sidecars
         run: |
+          dir src-tauri\sidecars\video_analyzer_backend
           mkdir -p src-tauri/sidecars/video_analyzer_backend
-          xcopy /E /I video-analyzer-app\video-analyser-backend\dist\video_analyzer_backend src-tauri\sidecars\video_analyzer_backend\
+          xcopy video-analyser-backend\dist\video_analyzer_backend src-tauri\sidecars\video_analyzer_backend /E /I /Y
 
       # --- Step 8. Install frontend dependencies
       - name: Install NPM dependencies
