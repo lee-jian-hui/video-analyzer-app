@@ -220,6 +220,32 @@ jobs:
           Write-Host "`n✅ Done staging sidecars and resources."
           Get-ChildItem -Recurse -File $dst, $instDir, $modelsDir | % { Write-Host $_.FullName }
 
+
+      - name: Patch sidecar binary naming for Tauri
+        shell: pwsh
+        run: |
+          $dst = "my-tauri-app/src-tauri/sidecars"
+          $bins = @(
+            "launcher.exe",
+            "ffmpeg.exe",
+            "ollama.exe"
+          )
+          foreach ($b in $bins) {
+            $src = Join-Path $dst $b
+            if (Test-Path $src) {
+              $arch = "x86_64-pc-windows-msvc"
+              $target = "$dst\$([System.IO.Path]::GetFileNameWithoutExtension($b))-$arch.exe"
+              Copy-Item $src $target -Force
+              Write-Host "✓ Copied $src → $target"
+            } else {
+              Write-Host "⚠ Missing expected file: $src" -ForegroundColor Yellow
+            }
+          }
+
+          # backend already patched by your earlier step
+
+
+
       # If your Rust build expects proto under src-tauri/proto (tonic-build)
       - name: Sync proto for Rust build (if needed)
         shell: pwsh
