@@ -430,6 +430,16 @@ async fn start_sidecar(
 
 #[tauri::command]
 async fn start_all_services(app: tauri::AppHandle, window: tauri::Window) -> Result<(), String> {
+    // 🧠 Check environment
+    let is_dev = std::env::var("TAURI_ENV")
+        .map(|v| v == "development")
+        .unwrap_or(false);
+
+    if is_dev {
+        println!("🧩 Dev mode detected — skipping sidecar launch.");
+        window.emit("status", "🧩 Dev mode — skipping Ollama and backend startup").ok();
+        return Ok(()); // ✅ Skip everything below
+    }
 
     // 1️⃣ Build paths
     let resource_dir = app.path().resource_dir();
@@ -441,18 +451,17 @@ async fn start_all_services(app: tauri::AppHandle, window: tauri::Window) -> Res
     envs.insert("OLLAMA_PORT".to_string(), "11435".to_string());
     envs.insert("OLLAMA_HOST".to_string(), "127.0.0.1".to_string());
 
-    // 3️⃣ Spawn Ollama server with explicit model path
+    // 3️⃣ Spawn Ollama server
     let ollama_cmd = app
         .shell()
         .sidecar("ollama")
         .map_err(|e| e.to_string())?
-        .envs(envs.clone()) // 👈 apply custom env vars
-        .args(["serve"]);   // 👈 ensure it's serving mode
+        .envs(envs.clone())
+        .args(["serve"]);
 
     let (mut ollama_rx, _ollama_child) = ollama_cmd.spawn().map_err(|e| e.to_string())?;
     window.emit("status", "🧠 Starting Ollama…").ok();
 
-    // Stream Ollama logs
     tauri::async_runtime::spawn({
         let window = window.clone();
         async move {
