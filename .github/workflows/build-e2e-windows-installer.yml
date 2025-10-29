@@ -127,6 +127,10 @@ jobs:
           Write-Host "✅ Backend (onedir) fully copied with dependencies"
           Get-ChildItem -Recurse $dst
 
+      # Install frontend dependencies
+      - name: Install NPM dependencies
+        working-directory: my-tauri-app
+        run: npm ci
 
       # Install protoc for Rust gRPC build
       - name: Install protoc (Protocol Buffers)
