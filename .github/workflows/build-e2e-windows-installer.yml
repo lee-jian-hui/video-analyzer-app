@@ -66,7 +66,7 @@ jobs:
       # --- Step 7. Copy backend EXE into Tauri sidecars
       - name: Copy backend to Tauri sidecars
         run: |
-          dir src-tauri\sidecars\video_analyzer_backend
+          dir src-tauri/sidecars/video_analyzer_backend
           mkdir -p src-tauri/sidecars/video_analyzer_backend
           xcopy video-analyser-backend\dist\video_analyzer_backend src-tauri\sidecars\video_analyzer_backend /E /I /Y
 
