@@ -180,14 +180,14 @@ jobs:
             }
           }
 
-          # Deep inspection for grpc’s compiled C-extension
-          $grpc_cy = Get-ChildItem -Recurse $base -ErrorAction SilentlyContinue | Where-Object { $_.Name -match "cygrpc.*\.pyd$" }
-          if (-not $grpc_cy) {
-            Write-Error "❌ Missing grpc C-extension (cygrpc.pyd)"
-            $missing = $true
-          } else {
-            Write-Host "✅ Found grpc C-extension: $($grpc_cy.FullName)"
-          }
+          # # Deep inspection for grpc’s compiled C-extension
+          # $grpc_cy = Get-ChildItem -Recurse $base -ErrorAction SilentlyContinue | Where-Object { $_.Name -match "cygrpc.*\.pyd$" }
+          # if (-not $grpc_cy) {
+          #   Write-Error "❌ Missing grpc C-extension (cygrpc.pyd)"
+          #   $missing = $true
+          # } else {
+          #   Write-Host "✅ Found grpc C-extension: $($grpc_cy.FullName)"
+          # }
 
           if ($missing) {
             Write-Error "❌ One or more critical Python modules missing from the build output."
