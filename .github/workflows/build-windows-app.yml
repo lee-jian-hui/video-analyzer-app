@@ -162,6 +162,22 @@ jobs:
             Get-Content "video_analyzer_backend/manifest.json" | Out-Host
           }
 
+
+      - name: Patch backend binary naming for Tauri
+        shell: pwsh
+        run: |
+          $dst = "my-tauri-app/src-tauri/sidecars/video_analyzer_backend"
+          $src = Join-Path $dst "video_analyzer_backend.exe"
+          $target = Join-Path $dst "video_analyzer_backend-x86_64-pc-windows-msvc.exe"
+          if (Test-Path $src) {
+            Copy-Item $src $target -Force
+            Write-Host "✅ Created $target for Tauri externalBin"
+          } else {
+            Write-Host "❌ Backend exe missing: $src" -ForegroundColor Red
+            exit 1
+          }
+
+
       # If you host other sidecars in a Release, pull them here (names must match tauri.conf.json)
       - name: Stage launcher/ffmpeg/ollama sidecars (from Release)
         shell: pwsh
