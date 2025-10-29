@@ -8,16 +8,17 @@
     - “What objects are shown in the video?” 
     - “Are there any graphs in the video? If yes, describe them.” 
     - “Summarize our discussion s- far and generate a PDF.” 
-
-### Startup screen
-![alt text](images/image.png)
-
+    
 ### Ability to:
 - Detect objects and entities in the video file
 - generate transcripts for the video file
 - generate summary reports in PDF
 - ask the human to reclarify their question
 - remember past 5 conversation and load on UI startup
+
+### Startup screen
+![alt text](images/image.png)
+
 
 #### Detect objects
 ![alt text](images/image-1.png)
