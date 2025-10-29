@@ -55,6 +55,24 @@ jobs:
           Write-Host "=== Checking backend build output ==="
           Get-ChildItem -Recurse -Directory -Path video-analyser-backend\dist
 
+
+      - name: Download FFmpeg binary
+        shell: pwsh
+        run: |
+          Write-Host "=== Downloading FFmpeg binary ==="
+          $url = "https://github.com/lee-jian-hui/video-analyzer-app/releases/download/large-files/ffmpeg.exe"
+          $sidecarDir = "my-tauri-app/src-tauri/sidecars"
+
+          Invoke-WebRequest -Uri $url -OutFile "ffmpeg.exe"
+
+          New-Item -ItemType Directory -Force -Path $sidecarDir | Out-Null
+          Move-Item -Force "ffmpeg.exe" "$sidecarDir/ffmpeg-x86_64-pc-windows-msvc.exe"
+
+          Write-Host "✅ FFmpeg placed at $sidecarDir/ffmpeg-x86_64-pc-windows-msvc.exe"
+          Get-ChildItem $sidecarDir
+
+
+
       # --- Step 5. Fetch Ollama binary
       - name: Download Ollama EXE from release
         shell: pwsh
@@ -74,6 +92,7 @@ jobs:
 
           Write-Host "✅ Ollama binary placed at $sidecarDir/ollama-x86_64-pc-windows-msvc.exe"
           Get-ChildItem $sidecarDir
+
 
       - name: Download Ollama models
         shell: pwsh
