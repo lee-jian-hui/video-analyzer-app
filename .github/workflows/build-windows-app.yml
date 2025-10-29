@@ -313,6 +313,21 @@ jobs:
       #       }
       #     }
 
+
+      - name: Ensure resource directories (with placeholders)
+        shell: pwsh
+        run: |
+          $res = "my-tauri-app/src-tauri/resources"
+          New-Item -ItemType Directory -Force -Path "$res/installers" | Out-Null
+          New-Item -ItemType Directory -Force -Path "$res/ollama_models" | Out-Null
+          New-Item -Path "$res/installers/.keep" -ItemType File -Force | Out-Null
+          New-Item -Path "$res/ollama_models/.keep" -ItemType File -Force | Out-Null
+
+      - name: Debug resource contents
+        run: |
+          Write-Host "`nResources under src-tauri/resources:"
+          Get-ChildItem -Recurse -File my-tauri-app/src-tauri/resources | ForEach-Object { $_.FullName }
+
       - name: Build Tauri installer
         working-directory: my-tauri-app
         run: npm run tauri build
